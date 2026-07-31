@@ -1,0 +1,45 @@
+name: " 버그 수정"
+description: "발생한 버그를 분석하고 수정 작업을 추적합니다."
+title: "[Bug] "
+labels: ["🐛 Bug"]
+body:
+  - type: textarea
+    id: bug-summary
+    attributes:
+      label: "📄 버그 요약"
+      description: "어떤 버그인지 기술적인 관점에서 간결하게 설명해주세요."
+      placeholder: "예: 특정 API 요청에서 Null Pointer Exception 발생"
+    validations:
+      required: true
+  - type: textarea
+    id: root-cause
+    attributes:
+      label: "🎯 근본 원인 분석"
+      description: "로그, 코드 분석을 통해 파악한 버그의 근본 원인을 작성해주세요."
+      placeholder: |
+        - 원인: 데이터 조회 시, 특정 조건에서 연관 엔티티가 null로 반환됨.
+        - 재현 경로: ...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: "💡 해결 방안"
+      description: "버그를 어떻게 수정할 것인지 기술적인 해결책을 서술해주세요."
+      placeholder: |
+        - 해결책: 해당 엔티티 조회 전 null 체크 로직 추가 및 예외 처리
+        - 수정할 파일: `UserService.java`, `UserController.java`
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: "✅ 세부 작업 목록 (To-Do)"
+      description: "버그를 수정하기 위한 세부 작업들을 체크리스트로 작성해주세요."
+      placeholder: |
+        - [ ] 원인 재현 테스트 코드 작성
+        - [ ] 코드 수정
+        - [ ] 수정 사항 반영 후 테스트
+        - [ ] QA 및 코드 리뷰 요청
+    validations:
+      required: true

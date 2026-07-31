@@ -1,0 +1,82 @@
+name: "🧪 테스트 추가 및 수정"
+description: "단위 테스트, 통합 테스트 등 테스트 코드 추가 및 수정 작업을 정의합니다."
+title: "[Test] "
+labels: ["🧪 Test"]
+body:
+  - type: textarea
+    id: test-target
+    attributes:
+      label: "🎯 테스트 대상"
+      description: "테스트를 추가하거나 수정할 기능, API 또는 모듈을 작성해주세요."
+      placeholder: |
+        - 대상 기능: 프로젝트 지원 기능
+        - 대상 모듈: `app/domains/applications/service.py`
+        - 대상 API: `POST /api/v1/projects/{project_id}/applications`
+    validations:
+      required: true
+
+  - type: textarea
+    id: test-purpose
+    attributes:
+      label: "📄 테스트 목적"
+      description: "해당 테스트가 필요한 이유와 검증하려는 동작을 작성해주세요."
+      placeholder: |
+        - 정상적인 프로젝트 지원 요청이 성공하는지 검증
+        - 동일 사용자의 중복 지원이 차단되는지 검증
+        - 모집이 마감된 프로젝트에 지원할 수 없는지 검증
+    validations:
+      required: true
+
+  - type: textarea
+    id: test-cases
+    attributes:
+      label: "🧪 테스트 시나리오"
+      description: "검증할 정상, 예외 및 경계값 시나리오를 작성해주세요."
+      placeholder: |
+        - [ ] 모집 중인 프로젝트에 정상적으로 지원할 수 있다.
+        - [ ] 동일한 프로젝트에 중복 지원하면 예외가 발생한다.
+        - [ ] 모집이 마감된 프로젝트에는 지원할 수 없다.
+        - [ ] 존재하지 않는 프로젝트에 지원하면 404 응답을 반환한다.
+        - [ ] 인증되지 않은 사용자의 요청은 401 응답을 반환한다.
+    validations:
+      required: true
+
+  - type: textarea
+    id: test-environment
+    attributes:
+      label: "⚙️ 테스트 환경 및 범위 (선택 사항)"
+      description: "테스트 종류, 사용 도구, Mock 여부와 필요한 환경을 작성해주세요."
+      placeholder: |
+        - 테스트 종류: 단위 테스트 / 통합 테스트
+        - 테스트 도구: pytest, HTTPX TestClient
+        - 외부 의존성: 이메일 발송 모듈 Mock 처리
+        - 데이터베이스: 테스트 전용 PostgreSQL 사용
+    validations:
+      required: false
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: "✅ 세부 작업 목록 (To-Do)"
+      description: "테스트 작업을 완료하기 위한 세부 단계를 체크리스트로 작성해주세요."
+      placeholder: |
+        - [ ] 테스트 Fixture 및 데이터 준비
+        - [ ] 정상 시나리오 테스트 작성
+        - [ ] 예외 및 경계값 테스트 작성
+        - [ ] 테스트 실행 결과 확인
+        - [ ] 기존 테스트 회귀 여부 확인
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: "🏁 완료 조건"
+      description: "테스트 작업이 완료되었다고 판단할 기준을 정의해주세요."
+      placeholder: |
+        - [ ] 정의한 테스트 시나리오가 모두 구현되었다.
+        - [ ] 새로 추가한 테스트가 모두 통과한다.
+        - [ ] 기존 테스트가 실패하지 않는다.
+        - [ ] 테스트가 독립적으로 반복 실행된다.
+    validations:
+      required: false
