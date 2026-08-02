@@ -6,7 +6,6 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -27,8 +26,6 @@ from app.domains.auth.exceptions import (
     UserSuspendedError,
     UserWithdrawnError,
 )
-from app.domains.auth.models import EmailVerification
-from app.domains.auth.repository import RefreshTokenRepository
 from app.domains.auth.schemas import (
     AuthData,
     AvailabilityData,
@@ -45,6 +42,8 @@ from app.domains.auth.schemas import (
     VerificationConfirmData,
     VerificationDispatchData,
 )
+from app.domains.email_verifications.service import EmailVerificationService
+from app.domains.refresh_tokens.service import RefreshTokenService
 from app.domains.users.models import User
 from app.domains.users.service import UserService
 from app.integrations.maileroo import MailerooEmailService
@@ -115,14 +114,7 @@ class AuthService:
         """인증 코드를 생성해 DB에 저장하고 Maileroo로 발송한다."""
         email = normalize_email(str(request.email))
         now = datetime.now(timezone.utc)
-        latest = db.scalar(
-            select(EmailVerification)
-            .where(
-                EmailVerification.email == email,
-                EmailVerification.verification_type == request.verification_type,
-            )
-            .order_by(EmailVerification.created_at.desc())
-        )
+        latest = EmailVerificationService.find_latest(db, email, request.verification_type)
         if latest and latest.created_at and now - as_utc(latest.created_at) < timedelta(seconds=60):
             logger.warning(
                 "이메일 인증 코드 재발송 제한에 걸렸습니다.",
@@ -134,14 +126,13 @@ class AuthService:
             raise TooManyRequestsError()
 
         code = f"{secrets.randbelow(1_000_000):06d}"
-        verification = EmailVerification(
+        verification = EmailVerificationService.create(
+            db,
             email=email,
             verification_type=request.verification_type,
             verification_code=AuthService._hash_value(code),
             expires_at=now + timedelta(minutes=5),
         )
-        db.add(verification)
-        db.flush()
         maileroo = MailerooEmailService()
         try:
             maileroo.send_verification_code(to_email=email, code=code)
@@ -173,14 +164,7 @@ class AuthService:
     ) -> VerificationConfirmData:
         """인증 코드를 검증하고 회원가입에 사용할 일회성 토큰을 발급한다."""
         email = normalize_email(str(request.email))
-        verification = db.scalar(
-            select(EmailVerification)
-            .where(
-                EmailVerification.email == email,
-                EmailVerification.verification_type == request.verification_type,
-            )
-            .order_by(EmailVerification.created_at.desc())
-        )
+        verification = EmailVerificationService.find_latest(db, email, request.verification_type)
         now = datetime.now(timezone.utc)
         if verification is None or verification.verified_at is not None:
             logger.warning(
@@ -204,7 +188,7 @@ class AuthService:
         if verification.attempt_count >= 5:
             raise TooManyRequestsError()
         if verification.verification_code != AuthService._hash_value(request.code):
-            verification.attempt_count += 1
+            EmailVerificationService.increase_attempt(db, verification)
             db.commit()
             logger.warning(
                 "이메일 인증 코드가 일치하지 않습니다.",
@@ -217,8 +201,9 @@ class AuthService:
             raise InvalidVerificationCodeError()
 
         verification_token = secrets.token_urlsafe(32)
-        verification.verification_code = AuthService._hash_value(verification_token)
-        verification.verified_at = now
+        EmailVerificationService.confirm(
+            db, verification, AuthService._hash_value(verification_token), now
+        )
         db.commit()
         logger.info(
             "이메일 인증이 완료되었습니다.",
@@ -254,16 +239,7 @@ class AuthService:
         if AuthService._user_by_nickname(db, nickname):
             raise NicknameAlreadyExistsError(nickname)
 
-        verification = db.scalar(
-            select(EmailVerification)
-            .where(
-                EmailVerification.email == email,
-                EmailVerification.verification_type == "SIGN_UP",
-                EmailVerification.verified_at.is_not(None),
-                EmailVerification.user_id.is_(None),
-            )
-            .order_by(EmailVerification.created_at.desc())
-        )
+        verification = EmailVerificationService.find_verified_signup(db, email)
         if verification is None or verification.verification_code != AuthService._hash_value(
             request.verification_token
         ):
@@ -276,7 +252,7 @@ class AuthService:
             nickname=nickname,
         )
         UserService.mark_email_verified(db, user)
-        verification.user_id = user.user_id
+        EmailVerificationService.assign_user(db, verification, user.user_id)
         tokens = AuthService._create_session(
             db,
             user_id=user.user_id,
@@ -335,7 +311,7 @@ class AuthService:
         except (ValueError, jwt.InvalidTokenError) as exc:
             raise InvalidTokenError() from exc
 
-        stored_token = RefreshTokenRepository.find_by_hash(
+        stored_token = RefreshTokenService.find_by_hash(
             db, AuthService._hash_value(request.refresh_token)
         )
         if stored_token is None:
@@ -343,13 +319,13 @@ class AuthService:
 
         now = datetime.now(timezone.utc)
         if stored_token.revoked_at is not None:
-            RefreshTokenRepository.revoke_all_by_user_id(db, stored_token.user_id, now)
+            RefreshTokenService.revoke_all_by_user_id(db, stored_token.user_id, now)
             db.commit()
             raise RefreshTokenReusedError()
         if stored_token.user_id != user_id:
             raise InvalidTokenError()
         if as_utc(stored_token.expires_at) <= now:
-            RefreshTokenRepository.revoke(db, stored_token, now)
+            RefreshTokenService.revoke(db, stored_token, now)
             db.commit()
             raise TokenExpiredError()
 
@@ -357,7 +333,7 @@ class AuthService:
         if user is None or user.user_status != "ACTIVE":
             raise InvalidTokenError()
 
-        RefreshTokenRepository.revoke(db, stored_token, now)
+        RefreshTokenService.revoke(db, stored_token, now)
         tokens = AuthService._create_session(
             db,
             user_id=user_id,
@@ -374,12 +350,10 @@ class AuthService:
     @staticmethod
     def logout(db: Session, *, user: User, refresh_token: str) -> None:
         """현재 사용자의 refresh token 세션을 폐기한다."""
-        stored_token = RefreshTokenRepository.find_by_hash(
-            db, AuthService._hash_value(refresh_token)
-        )
+        stored_token = RefreshTokenService.find_by_hash(db, AuthService._hash_value(refresh_token))
         if stored_token is not None and stored_token.user_id == user.user_id:
             if stored_token.revoked_at is None:
-                RefreshTokenRepository.revoke(db, stored_token, datetime.now(timezone.utc))
+                RefreshTokenService.revoke(db, stored_token, datetime.now(timezone.utc))
                 db.commit()
         logger.info(
             "사용자 로그아웃이 완료되었습니다.",
@@ -402,14 +376,7 @@ class AuthService:
             return PasswordResetRequestData(message=message)
 
         now = datetime.now(timezone.utc)
-        latest = db.scalar(
-            select(EmailVerification)
-            .where(
-                EmailVerification.email == email,
-                EmailVerification.verification_type == "PASSWORD_RESET",
-            )
-            .order_by(EmailVerification.created_at.desc())
-        )
+        latest = EmailVerificationService.find_latest(db, email, "PASSWORD_RESET")
         if latest and latest.created_at and now - as_utc(latest.created_at) < timedelta(seconds=60):
             logger.info(
                 "비밀번호 재설정 메일 재발송을 생략했습니다.",
@@ -418,15 +385,14 @@ class AuthService:
             return PasswordResetRequestData(message=message)
 
         reset_token = f"prt_{secrets.token_urlsafe(32)}"
-        verification = EmailVerification(
+        verification = EmailVerificationService.create(
+            db,
             user_id=user.user_id,
             email=email,
             verification_type="PASSWORD_RESET",
             verification_code=AuthService._hash_value(reset_token),
             expires_at=now + timedelta(minutes=10),
         )
-        db.add(verification)
-        db.flush()
         maileroo = MailerooEmailService()
         try:
             maileroo.send_password_reset(to_email=email, reset_token=reset_token)
@@ -450,12 +416,8 @@ class AuthService:
     @staticmethod
     def confirm_password_reset(db: Session, request: PasswordResetConfirmRequest) -> None:
         """일회용 재설정 토큰으로 비밀번호를 변경하고 기존 세션을 폐기한다."""
-        verification = db.scalar(
-            select(EmailVerification).where(
-                EmailVerification.verification_type == "PASSWORD_RESET",
-                EmailVerification.verification_code == AuthService._hash_value(request.reset_token),
-                EmailVerification.verified_at.is_(None),
-            )
+        verification = EmailVerificationService.find_password_reset(
+            db, AuthService._hash_value(request.reset_token)
         )
         if verification is None or verification.user_id is None:
             raise InvalidPasswordResetTokenError()
@@ -469,8 +431,8 @@ class AuthService:
             raise InvalidPasswordResetTokenError()
 
         UserService.update_password_hash(db, user, hash_password(request.new_password))
-        verification.verified_at = now
-        RefreshTokenRepository.revoke_all_by_user_id(db, user.user_id, now)
+        EmailVerificationService.mark_used(db, verification, now)
+        RefreshTokenService.revoke_all_by_user_id(db, user.user_id, now)
         db.commit()
         logger.info(
             "비밀번호 재설정이 완료되었습니다.",
@@ -506,7 +468,7 @@ class AuthService:
         """새 토큰 쌍을 발급하고 refresh token 해시를 session에 저장한다."""
         tokens = AuthService._tokens(user_id)
         refresh_payload = decode_token(tokens.refresh_token, expected_type="refresh")
-        RefreshTokenRepository.add(
+        RefreshTokenService.create(
             db,
             user_id=user_id,
             token_hash=AuthService._hash_value(tokens.refresh_token),

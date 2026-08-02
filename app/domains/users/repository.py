@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.domains.users.models import User
@@ -24,7 +24,9 @@ class UserRepository:
     @staticmethod
     def find_by_nickname(db: Session, nickname: str) -> User | None:
         """정규화된 닉네임으로 사용자를 조회한다."""
-        return db.scalar(select(User).where(User.nickname == nickname))
+        return db.scalar(
+            select(User).where(func.lower(func.trim(User.nickname)) == nickname.lower())
+        )
 
     @staticmethod
     def add(db: Session, user: User) -> User:
@@ -55,4 +57,10 @@ class UserRepository:
     def update_password_hash(db: Session, user: User, password_hash: str) -> None:
         """사용자의 비밀번호 해시를 session에 반영한다."""
         user.password_hash = password_hash
+        db.add(user)
+
+    @staticmethod
+    def update_nickname(db: Session, user: User, nickname: str) -> None:
+        """사용자의 닉네임을 session에 반영한다."""
+        user.nickname = nickname
         db.add(user)

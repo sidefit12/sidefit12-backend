@@ -12,7 +12,13 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.config import get_settings
 from app.core.database import Base, get_db
-from app.domains.auth import models as auth_models  # noqa: F401
+from app.domains.email_verifications import models as email_verification_models  # noqa: F401
+from app.domains.files import models as file_models  # noqa: F401
+from app.domains.refresh_tokens import models as refresh_token_models  # noqa: F401
+from app.domains.roles import models as role_models  # noqa: F401
+from app.domains.tech_stacks import models as tech_stack_models  # noqa: F401
+from app.domains.topics import models as topic_models  # noqa: F401
+from app.domains.user_profiles import models as profile_models  # noqa: F401
 from app.domains.users import models as user_models  # noqa: F401
 from app.integrations.maileroo import MailerooEmailService
 from app.main import app
