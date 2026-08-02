@@ -477,6 +477,63 @@ docker compose down -v
 - GitHub Actions에서 Ruff 검사, pytest와 Docker 이미지 빌드를 자동으로 수행합니다.
 - API 오류는 공통 응답 형식으로 반환하고 주요 처리 결과를 구조화된 로그로 기록합니다.
 
+### 테스트 실행
+
+프로젝트 가상환경에서 전체 테스트를 실행합니다.
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+macOS/Linux:
+
+```bash
+python -m pytest -q
+```
+
+현재 인증 테스트는 실제 PostgreSQL과 Maileroo를 호출하지 않고 메모리 SQLite와 가짜 이메일 발송기를 사용합니다. 테스트마다 DB가 초기화되므로 로컬 개발 데이터에 영향을 주지 않습니다.
+
+### Ruff 코드 포맷팅
+
+Python 코드 포맷은 Ruff를 사용합니다. 공통 규칙은 [`pyproject.toml`](./pyproject.toml)에 정의되어 있으며 줄 길이 100자, 큰따옴표, 스페이스 들여쓰기를 적용합니다.
+
+전체 애플리케이션과 테스트 코드에 포맷을 적용합니다.
+
+```powershell
+.\.venv\Scripts\python.exe -m ruff format app tests
+```
+
+파일을 변경하지 않고 포맷 준수 여부만 확인합니다.
+
+```powershell
+.\.venv\Scripts\python.exe -m ruff format --check app tests
+```
+
+macOS/Linux에서는 다음과 같이 실행합니다.
+
+```bash
+python -m ruff format app tests
+python -m ruff format --check app tests
+```
+
+코드를 수정한 뒤에는 Ruff 포맷 검사와 pytest를 모두 통과시켜야 합니다.
+
+### GitHub Actions CI
+
+[`백엔드 테스트 및 코드 품질 검사`](./.github/workflows/ci.yml)는 `develop` 브랜치의 push와 Pull Request에서 실행됩니다. 수동 실행도 지원하며 다음 항목을 순서대로 검사합니다.
+
+1. GitHub Actions Secret에서 테스트용 `.env` 생성
+2. Python 3.13 및 pip 의존성 설치
+3. `pip check` 의존성 무결성 검사
+4. Ruff lint 검사
+5. Ruff 포맷 검사
+6. Python 코드 컴파일 검사
+7. pytest 인증 API 테스트
+
+CI 테스트에서는 외부 PostgreSQL과 Maileroo를 호출하지 않으며 테스트 전용 환경변수와 메모리 SQLite를 사용합니다.
+
+Repository의 `Settings → Secrets and variables → Actions`에서 `BACKEND_ENV_FILE` Secret을 생성하고 테스트용 `.env` 파일 전체 내용을 값으로 등록해야 합니다. 운영용 비밀번호나 운영 API Key 대신 CI 전용 값을 사용합니다.
+
 ---
 
 ## 🤝 Conventions

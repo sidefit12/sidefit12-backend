@@ -10,7 +10,6 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.exceptions import AppException
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -19,11 +18,21 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(AppException)
     async def handle_app_exception(
-        _request: Request,
+        request: Request,
         exception: AppException,
     ) -> JSONResponse:
         """애플리케이션 커스텀 예외를 공통 응답으로 변환한다."""
 
+        logger.warning(
+            "애플리케이션 예외가 발생했습니다.",
+            extra={
+                "event": "app_exception",
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": exception.status_code,
+                "error_code": exception.code,
+            },
+        )
         return JSONResponse(
             status_code=exception.status_code,
             content=jsonable_encoder(
@@ -37,16 +46,26 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def handle_request_validation_error(
-        _request: Request,
+        request: Request,
         exception: RequestValidationError,
     ) -> JSONResponse:
         """Pydantic 요청값 검증 오류를 처리한다."""
 
+        logger.warning(
+            "요청값 검증에 실패했습니다.",
+            extra={
+                "event": "request_validation_failed",
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": status.HTTP_400_BAD_REQUEST,
+                "error_code": "VALIDATION_ERROR",
+            },
+        )
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_400_BAD_REQUEST,
             content=jsonable_encoder(
                 {
-                    "code": "REQUEST_VALIDATION_FAILED",
+                    "code": "VALIDATION_ERROR",
                     "message": "요청값이 올바르지 않습니다.",
                     "details": exception.errors(),
                 }
@@ -72,11 +91,7 @@ def register_exception_handlers(app: FastAPI) -> None:
                 {
                     "code": f"HTTP_{exception.status_code}",
                     "message": message,
-                    "details": (
-                        None
-                        if isinstance(exception.detail, str)
-                        else exception.detail
-                    ),
+                    "details": (None if isinstance(exception.detail, str) else exception.detail),
                 }
             ),
         )

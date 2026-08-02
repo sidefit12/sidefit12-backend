@@ -9,6 +9,15 @@ class Settings(BaseSettings):
     """환경변수와 .env 파일에서 애플리케이션 설정을 불러온다."""
 
     database_url: str
+    jwt_secret_key: str = "change-me-in-production"
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 14
+    maileroo_api_key: str
+    maileroo_from_email: str
+    maileroo_from_name: str = "SideFit"
+    maileroo_api_url: str = "https://smtp.maileroo.com/api/v2/emails"
+    frontend_password_reset_url: str = "http://localhost:3000/password-reset"
+    log_level: str = "INFO"
 
     model_config = SettingsConfigDict(
         env_file=".env",

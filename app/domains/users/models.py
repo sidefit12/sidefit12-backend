@@ -31,8 +31,7 @@ class User(Base):
             name="uk_users_nickname",
         ),
         CheckConstraint(
-            "user_status IN "
-            "('PENDING', 'ACTIVE', 'SUSPENDED', 'WITHDRAWN')",
+            "user_status IN ('PENDING', 'ACTIVE', 'SUSPENDED', 'WITHDRAWN')",
             name="ck_users_status",
         ),
         CheckConstraint(
