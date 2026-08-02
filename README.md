@@ -387,7 +387,44 @@ DATABASE_URL=postgresql+psycopg://sidefit:sidefit1234@localhost:5432/sidefit
 
 > `.env`에는 비밀번호와 토큰 등 민감정보가 포함될 수 있으므로 Git에 커밋하지 않습니다.
 
-### 7. 개발 서버 실행
+### 7. 데이터베이스 테이블 생성
+
+SQLAlchemy의 `models.py`는 테이블 구조를 정의할 뿐이며,  
+개발 서버를 실행하는 것만으로 PostgreSQL에 테이블이 자동 생성되지는 않습니다.
+
+현재 개발 초기 단계에서는 다음 명령어로 `Base.metadata`에 등록된 테이블을 생성합니다.
+
+Windows PowerShell:
+
+```powershell
+python -c "from app.core.database import Base, engine; import app.domains.users.models; Base.metadata.create_all(bind=engine); print('테이블 생성 완료')"
+```
+
+macOS/Linux:
+
+```bash
+python -c "from app.core.database import Base, engine; import app.domains.users.models; Base.metadata.create_all(bind=engine); print('테이블 생성 완료')"
+```
+
+> `import app.domains.users.models`가 있어야 `User` 모델이 SQLAlchemy의 `Base.metadata`에 등록됩니다.  
+> 새로운 도메인의 모델을 추가한 경우 해당 `models.py`도 함께 import해야 합니다.
+
+생성된 테이블 목록을 확인합니다.
+
+```bash
+docker exec -it sidefit-postgres psql -U sidefit -d sidefit -c "\dt"
+```
+
+`users` 테이블의 컬럼과 제약조건을 확인합니다.
+
+```bash
+docker exec -it sidefit-postgres psql -U sidefit -d sidefit -c "\d+ users"
+```
+
+> `Base.metadata.create_all()`은 존재하지 않는 테이블만 생성하며, 이미 생성된 테이블의 컬럼이나 제약조건을 변경하지 않습니다.  
+> 실제 스키마 변경 이력은 이후 Alembic 마이그레이션으로 관리합니다.
+
+### 8. 개발 서버 실행
 
 ```bash
 fastapi dev app/main.py
@@ -399,7 +436,7 @@ fastapi dev app/main.py
 uvicorn app.main:app --reload
 ```
 
-### 8. API 문서 확인
+### 9. API 문서 확인
 
 | 구분 | 주소 |
 | --- | --- |
@@ -408,7 +445,7 @@ uvicorn app.main:app --reload
 | ReDoc | `http://127.0.0.1:8000/redoc` |
 | Health Check | `http://127.0.0.1:8000/health` |
 
-### 9. PostgreSQL 종료 및 재실행
+### 10. PostgreSQL 종료 및 재실행
 
 컨테이너를 종료합니다.
 
