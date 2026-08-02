@@ -20,10 +20,12 @@ SessionLocal = sessionmaker(
     expire_on_commit=False,
 )
 
+
 class Base(DeclarativeBase):
     """모든 SQLAlchemy ORM 모델이 상속하는 기본 클래스."""
 
     pass
+
 
 def get_db() -> Generator[Session, None, None]:
     """요청 단위의 데이터베이스 세션을 생성하고 반환한다.

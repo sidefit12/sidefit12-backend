@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <title>SideFit 이메일 인증</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        @media only screen and (max-width: 620px) {
+            .email-wrapper { padding: 24px 16px !important; }
+            .email-header, .email-content, .email-footer { padding-left: 24px !important; padding-right: 24px !important; }
+            .email-header { padding-top: 18px !important; padding-bottom: 18px !important; }
+            .email-hero { padding: 30px 24px 32px !important; }
+            .email-title { font-size: 28px !important; }
+            .email-description { font-size: 13px !important; }
+            .email-content { padding-top: 28px !important; padding-bottom: 30px !important; }
+            .verification-code { font-size: 30px !important; letter-spacing: 5px !important; }
+            .code-panel { padding-left: 16px !important; padding-right: 12px !important; }
+            .expiry-badge { padding: 8px 9px !important; font-size: 9px !important; }
+            .security-notice { padding: 16px 14px !important; }
+        }
+    </style>
+</head>
+<body style="margin:0;padding:0;background:#f7f7f7;color:#111;font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',Arial,sans-serif;word-break:keep-all;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">SideFit 회원가입을 위한 이메일 인증 코드입니다.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#f7f7f7;">
+        <tr>
+            <td class="email-wrapper" align="center" style="padding:56px 20px;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#fff;border:1px solid #e5e5e5;border-radius:16px;overflow:hidden;">
+                    <!-- Header -->
+                    <tr>
+                        <td class="email-header" style="padding:22px 40px;border-bottom:1px solid #e5e5e5;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td valign="middle"><img src="cid:sidefit-logo.png" alt="SideFit" width="104" style="display:block;width:104px;height:auto;border:0;"></td>
+                                    <td align="right" valign="middle" style="font-family:Inter,Arial,sans-serif;">
+                                        <div style="font-size:10px;line-height:1.4;font-weight:700;letter-spacing:1.2px;color:#111;">SIDEFIT SECURITY</div>
+                                        <div style="margin-top:4px;font-size:9px;line-height:1.4;font-weight:400;letter-spacing:1px;color:#8d8d8d;">EMAIL / 01</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!-- Hero -->
+                    <tr>
+                        <td class="email-hero" style="padding:38px 40px 40px;background:#111;">
+                            <p style="margin:0 0 20px;font-family:Inter,Arial,sans-serif;font-size:11px;line-height:1.4;font-weight:700;letter-spacing:1.4px;color:#d8ff00;">VERIFY YOUR EMAIL</p>
+                            <h1 class="email-title" style="margin:0 0 20px;font-size:38px;line-height:1.32;font-weight:700;letter-spacing:-1.4px;color:#fff;">이메일 인증을<br>완료해 주세요.</h1>
+                            <p class="email-description" style="margin:0;font-size:14px;line-height:1.7;font-weight:400;color:#c1c1c1;">SideFit 회원가입을 계속하려면<br>아래 인증 코드를 입력해 주세요.</p>
+                        </td>
+                    </tr>
+                    <!-- Content -->
+                    <tr>
+                        <td class="email-content" style="padding:34px 40px 36px;background:#fff;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:10px;">
+                                <tr>
+                                    <td style="font-size:12px;line-height:1.5;font-weight:500;color:#757575;">인증 코드</td>
+                                    <td align="right" style="font-family:Inter,Arial,sans-serif;font-size:11px;line-height:1.5;color:#757575;">{{ expires_in_minutes }}분 동안 유효</td>
+                                </tr>
+                            </table>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="code-panel" style="width:100%;background:#d8ff00;border-radius:12px;">
+                                <tr>
+                                    <td style="padding:22px 0 22px 24px;">
+                                        <p class="verification-code" style="margin:0;font-family:Inter,Arial,sans-serif;font-size:40px;line-height:1.2;font-weight:700;letter-spacing:8px;white-space:nowrap;color:#111;">{{ verification_code }}</p>
+                                    </td>
+                                    <td align="right" valign="middle" style="padding:11px 18px 11px 12px;">
+                                        <span class="expiry-badge" style="display:inline-block;padding:9px 10px;background:#111;border-radius:6px;font-family:Inter,Arial,sans-serif;font-size:10px;line-height:1;font-weight:700;letter-spacing:.5px;color:#fff;white-space:nowrap;">{{ expires_in_minutes }} MIN</span>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="security-notice" style="width:100%;margin-top:24px;background:#f7f7f7;border-radius:10px;">
+                                <tr><td style="padding:18px 18px 6px;font-family:Inter,Arial,sans-serif;font-size:10px;line-height:1.4;font-weight:700;letter-spacing:1px;color:#111;">SECURITY NOTICE</td></tr>
+                                <tr><td style="padding:6px 18px 0;font-size:12px;line-height:1.7;color:#757575;"><span style="color:#d8ff00;font-size:18px;line-height:0;vertical-align:-2px;">•</span>&nbsp; 인증 코드는 발급 후 {{ expires_in_minutes }}분 동안만 사용할 수 있습니다.</td></tr>
+                                <tr><td style="padding:4px 18px 18px;font-size:12px;line-height:1.7;color:#757575;"><span style="color:#d8ff00;font-size:18px;line-height:0;vertical-align:-2px;">•</span>&nbsp; 코드를 다른 사람에게 전달하거나 공유하지 마세요.</td></tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td class="email-footer" style="padding:22px 40px;background:#111;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="font-size:11px;line-height:1.7;color:#8d8d8d;">본인이 요청하지 않았다면<br>이 메일을 무시해 주세요.</td>
+                                    <td align="right" valign="bottom" style="font-family:Inter,Arial,sans-serif;font-size:10px;line-height:1.5;font-weight:600;color:#fff;white-space:nowrap;">© {{ current_year }} SIDEFIT</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
