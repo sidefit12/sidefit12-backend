@@ -81,3 +81,8 @@ class UserService:
     def update_password_hash(db: Session, user: User, password_hash: str) -> None:
         """검증이 끝난 새 비밀번호 해시를 사용자 데이터에 반영한다."""
         UserRepository.update_password_hash(db, user, password_hash)
+
+    @staticmethod
+    def update_nickname(db: Session, user: User, nickname: str) -> None:
+        """검증이 끝난 닉네임을 사용자 데이터에 반영한다."""
+        UserRepository.update_nickname(db, user, nickname.strip())

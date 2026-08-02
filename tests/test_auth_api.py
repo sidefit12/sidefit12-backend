@@ -6,8 +6,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.domains.auth.models import EmailVerification, RefreshToken
 from app.domains.auth.service import AuthService
+from app.domains.email_verifications.models import EmailVerification
+from app.domains.refresh_tokens.models import RefreshToken
 from app.domains.users.models import User
 from tests.conftest import SentEmailStore
 
