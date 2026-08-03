@@ -12,11 +12,16 @@ class RoleRepository:
     """역할 목록과 식별자 기반 조회 연산을 제공한다."""
 
     @staticmethod
-    def list(db: Session, *, active_only: bool = True) -> Sequence[Role]:
+    def list(
+        db: Session, *, active_only: bool = True, keyword: str | None = None
+    ) -> Sequence[Role]:
         """역할 목록을 이름 순서로 조회한다."""
         query = select(Role)
         if active_only:
             query = query.where(Role.is_active.is_(True))
+        if keyword:
+            pattern = f"%{keyword.strip()}%"
+            query = query.where(Role.role_code.ilike(pattern) | Role.role_name.ilike(pattern))
         return db.scalars(query.order_by(Role.role_name)).all()
 
     @staticmethod

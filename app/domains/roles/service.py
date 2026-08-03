@@ -13,9 +13,16 @@ class RoleService:
     """활성 역할 조회와 프로필 역할 선택 검증을 담당한다."""
 
     @staticmethod
+    def list(
+        db: Session, *, include_inactive: bool = False, keyword: str | None = None
+    ) -> Sequence[Role]:
+        """조회 조건에 맞는 역할 기준정보를 반환한다."""
+        return RoleRepository.list(db, active_only=not include_inactive, keyword=keyword)
+
+    @staticmethod
     def list_active(db: Session) -> Sequence[Role]:
         """신규 선택에 사용할 활성 역할 목록을 반환한다."""
-        return RoleRepository.list(db)
+        return RoleService.list(db)
 
     @staticmethod
     def find_by_ids(db: Session, ids: set[int]) -> Sequence[Role]:
