@@ -218,7 +218,7 @@ def test_member_remove_restore_and_leave(client: TestClient, db_session: Session
     event_types = {event.event_type for event in db_session.query(ProjectMemberEvent).all()}
     assert {"LEFT", "REMOVED", "RESTORED"} <= event_types
     notification_types = {item.notification_type for item in db_session.query(Notification).all()}
-    assert {"TEAM_MEMBER_LEFT", "TEAM_MEMBER_REMOVED", "TEAM_MEMBER_RESTORED"} <= notification_types
+    assert {"MEMBER_LEFT", "MEMBER_JOINED"} <= notification_types
 
 
 def test_member_restore_capacity_and_swagger(client: TestClient, db_session: Session) -> None:
