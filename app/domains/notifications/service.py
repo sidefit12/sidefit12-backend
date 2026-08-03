@@ -33,3 +33,31 @@ class NotificationService:
             reference_type="APPLICATION",
             reference_id=application_id,
         )
+
+    @staticmethod
+    def team_member_changed(
+        db: Session,
+        user_id: int,
+        project_id: int,
+        *,
+        event_type: str,
+    ) -> None:
+        """팀원 탈퇴·퇴출·복구 결과 알림을 생성한다."""
+        messages = {
+            "LEFT": ("프로젝트 팀원이 탈퇴했습니다.", "팀원 변경 사항을 확인해 주세요."),
+            "REMOVED": ("프로젝트 팀원 상태가 변경되었습니다.", "프로젝트에서 퇴출되었습니다."),
+            "RESTORED": (
+                "프로젝트 팀원으로 복구되었습니다.",
+                "프로젝트에 다시 참여할 수 있습니다.",
+            ),
+        }
+        title, content = messages[event_type]
+        NotificationRepository.add(
+            db,
+            user_id=user_id,
+            notification_type=f"TEAM_MEMBER_{event_type}",
+            title=title,
+            content=content,
+            reference_type="PROJECT",
+            reference_id=project_id,
+        )

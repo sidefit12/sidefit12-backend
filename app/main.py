@@ -10,6 +10,8 @@ from app.domains.auth.openapi import apply_auth_openapi
 from app.domains.auth.router import router as auth_router
 from app.domains.project_applications.openapi import apply_application_openapi
 from app.domains.project_applications.router import router as applications_router
+from app.domains.project_members.openapi import apply_member_openapi
+from app.domains.project_members.router import router as members_router
 from app.domains.projects.openapi import apply_project_openapi
 from app.domains.projects.router import router as projects_router
 from app.domains.reference_data.openapi import apply_reference_data_openapi
@@ -31,6 +33,7 @@ app.include_router(users_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(projects_router, prefix="/api/v1")
 app.include_router(applications_router, prefix="/api/v1")
+app.include_router(members_router, prefix="/api/v1")
 app.include_router(reference_data_router, prefix="/api/v1")
 register_exception_handlers(app)
 
@@ -46,6 +49,7 @@ def custom_openapi():
     schema = apply_profile_openapi(schema)
     schema = apply_project_openapi(schema)
     schema = apply_application_openapi(schema)
+    schema = apply_member_openapi(schema)
     app.openapi_schema = apply_reference_data_openapi(schema)
     return app.openapi_schema
 

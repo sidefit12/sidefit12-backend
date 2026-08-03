@@ -38,6 +38,15 @@ class ProfileService:
     """PROFILE-001~008의 조회와 저장 규칙을 제공한다."""
 
     @staticmethod
+    def get_user_summary(db: Session, user_id: int) -> dict[str, object]:
+        """프로필 생성 없이 사용자 요약에 필요한 공개 상태를 반환한다."""
+        profile = ProfileRepository.find_profile(db, user_id)
+        return {
+            "onboarding_completed": profile.onboarding_completed if profile else False,
+            "profile_image_url": None,
+        }
+
+    @staticmethod
     def onboarding_options(db: Session, user: User) -> OnboardingOptionsData:
         """활성 기준정보와 사용자의 현재 선택값을 반환한다."""
         topics = TopicService.list_active(db)

@@ -19,6 +19,11 @@ class ProjectPositionService:
         position.position_status = "CLOSED"
 
     @staticmethod
+    def open(db: Session, position) -> None:
+        """팀원 이탈로 자리가 생긴 포지션을 다시 연다."""
+        position.position_status = "OPEN"
+
+    @staticmethod
     def replace(db: Session, project_id: int, items) -> None:
         """프로젝트 모집 포지션을 전체 교체한다."""
         ProjectPositionRepository.replace(db, project_id, items)
