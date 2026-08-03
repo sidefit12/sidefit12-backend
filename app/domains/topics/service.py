@@ -18,6 +18,11 @@ class TopicService:
         return TopicRepository.list(db)
 
     @staticmethod
+    def find_by_ids(db: Session, ids: set[int]) -> Sequence[Topic]:
+        """식별자에 해당하는 토픽을 활성 상태와 관계없이 조회한다."""
+        return TopicRepository.find_by_ids(db, ids)
+
+    @staticmethod
     def validate_active_ids(db: Session, ids: set[int]) -> Sequence[Topic]:
         """선택한 모든 토픽이 존재하고 활성 상태인지 확인한다."""
         items = TopicRepository.find_by_ids(db, ids)

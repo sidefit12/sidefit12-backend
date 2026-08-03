@@ -14,6 +14,9 @@ from app.core.config import get_settings
 from app.core.database import Base, get_db
 from app.domains.email_verifications import models as email_verification_models  # noqa: F401
 from app.domains.files import models as file_models  # noqa: F401
+from app.domains.project_collaboration_channels import models as channel_models  # noqa: F401
+from app.domains.project_positions import models as position_models  # noqa: F401
+from app.domains.projects import models as project_models  # noqa: F401
 from app.domains.refresh_tokens import models as refresh_token_models  # noqa: F401
 from app.domains.roles import models as role_models  # noqa: F401
 from app.domains.tech_stacks import models as tech_stack_models  # noqa: F401
