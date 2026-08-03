@@ -46,3 +46,13 @@ def get_current_user(
             raise AuthUserNotFoundError(user_id)
         raise AuthenticationRequiredError()
     return user
+
+
+def get_optional_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Bearer 토큰이 없으면 비회원으로, 있으면 인증된 사용자로 처리한다."""
+    if credentials is None:
+        return None
+    return get_current_user(credentials, db)

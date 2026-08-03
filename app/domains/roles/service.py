@@ -18,6 +18,11 @@ class RoleService:
         return RoleRepository.list(db)
 
     @staticmethod
+    def find_by_ids(db: Session, ids: set[int]) -> Sequence[Role]:
+        """식별자에 해당하는 역할을 활성 상태와 관계없이 조회한다."""
+        return RoleRepository.find_by_ids(db, ids)
+
+    @staticmethod
     def validate_active_ids(db: Session, ids: set[int]) -> Sequence[Role]:
         """선택한 모든 역할이 존재하고 활성 상태인지 확인한다."""
         items = RoleRepository.find_by_ids(db, ids)

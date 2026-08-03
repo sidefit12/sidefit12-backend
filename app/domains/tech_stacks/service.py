@@ -18,6 +18,11 @@ class TechStackService:
         return TechStackRepository.list(db)
 
     @staticmethod
+    def find_by_ids(db: Session, ids: set[int]) -> Sequence[TechStack]:
+        """식별자에 해당하는 기술 스택을 활성 상태와 관계없이 조회한다."""
+        return TechStackRepository.find_by_ids(db, ids)
+
+    @staticmethod
     def validate_active_ids(db: Session, ids: set[int]) -> Sequence[TechStack]:
         """선택한 모든 기술 스택이 존재하고 활성 상태인지 확인한다."""
         items = TechStackRepository.find_by_ids(db, ids)

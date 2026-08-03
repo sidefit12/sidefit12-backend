@@ -1,11 +1,16 @@
 """SideFit FastAPI 애플리케이션 생성 및 전역 설정 모듈."""
 
 from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
 
 from app.core.config import get_settings
 from app.core.exception_handlers import register_exception_handlers
 from app.core.logging import RequestLoggingMiddleware, configure_logging
+from app.domains.auth.openapi import apply_auth_openapi
 from app.domains.auth.router import router as auth_router
+from app.domains.projects.openapi import apply_project_openapi
+from app.domains.projects.router import router as projects_router
+from app.domains.user_profiles.openapi import apply_profile_openapi
 from app.domains.users.router import router as users_router
 
 settings = get_settings()
@@ -20,4 +25,21 @@ app = FastAPI(
 app.add_middleware(RequestLoggingMiddleware)
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(projects_router, prefix="/api/v1")
 register_exception_handlers(app)
+
+
+def custom_openapi():
+    """API 명세서 기반 요청·응답 예시가 포함된 OpenAPI 문서를 생성한다."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title, version=app.version, description=app.description, routes=app.routes
+    )
+    schema = apply_auth_openapi(schema)
+    schema = apply_profile_openapi(schema)
+    app.openapi_schema = apply_project_openapi(schema)
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
