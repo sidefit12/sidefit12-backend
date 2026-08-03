@@ -13,9 +13,16 @@ class TopicService:
     """활성 토픽 조회와 프로필 토픽 선택 검증을 담당한다."""
 
     @staticmethod
+    def list(
+        db: Session, *, include_inactive: bool = False, keyword: str | None = None
+    ) -> Sequence[Topic]:
+        """조회 조건에 맞는 토픽 기준정보를 반환한다."""
+        return TopicRepository.list(db, active_only=not include_inactive, keyword=keyword)
+
+    @staticmethod
     def list_active(db: Session) -> Sequence[Topic]:
         """신규 선택에 사용할 활성 토픽 목록을 반환한다."""
-        return TopicRepository.list(db)
+        return TopicService.list(db)
 
     @staticmethod
     def find_by_ids(db: Session, ids: set[int]) -> Sequence[Topic]:

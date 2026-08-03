@@ -13,9 +13,16 @@ class TechStackService:
     """활성 기술 스택 조회와 프로필 선택 검증을 담당한다."""
 
     @staticmethod
+    def list(
+        db: Session, *, include_inactive: bool = False, keyword: str | None = None
+    ) -> Sequence[TechStack]:
+        """조회 조건에 맞는 기술 스택 기준정보를 반환한다."""
+        return TechStackRepository.list(db, active_only=not include_inactive, keyword=keyword)
+
+    @staticmethod
     def list_active(db: Session) -> Sequence[TechStack]:
         """신규 선택에 사용할 활성 기술 스택 목록을 반환한다."""
-        return TechStackRepository.list(db)
+        return TechStackService.list(db)
 
     @staticmethod
     def find_by_ids(db: Session, ids: set[int]) -> Sequence[TechStack]:
