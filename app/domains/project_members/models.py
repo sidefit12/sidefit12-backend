@@ -7,6 +7,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Identity,
     String,
     UniqueConstraint,
@@ -24,6 +25,12 @@ class ProjectMember(Base):
     __table_args__ = (
         UniqueConstraint("project_id", "user_id", name="uk_project_members_user"),
         UniqueConstraint("project_application_id", name="uk_project_members_application"),
+        ForeignKeyConstraint(
+            ["project_id", "project_position_id"],
+            ["project_positions.project_id", "project_positions.project_position_id"],
+            name="fk_members_positions",
+            ondelete="RESTRICT",
+        ),
         CheckConstraint("member_type IN ('OWNER','MEMBER')", name="ck_project_members_type"),
         CheckConstraint(
             "member_status IN ('ACTIVE','LEFT','REMOVED')", name="ck_project_members_status"
@@ -40,9 +47,7 @@ class ProjectMember(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False
     )
-    project_position_id: Mapped[int] = mapped_column(
-        ForeignKey("project_positions.project_position_id", ondelete="RESTRICT"), nullable=False
-    )
+    project_position_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     project_application_id: Mapped[int | None] = mapped_column(
         ForeignKey("project_applications.project_application_id", ondelete="SET NULL"),
         nullable=True,

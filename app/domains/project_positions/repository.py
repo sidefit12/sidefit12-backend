@@ -10,6 +10,14 @@ class ProjectPositionRepository:
     """모집 포지션의 저장과 조회를 담당한다."""
 
     @staticmethod
+    def find(db: Session, position_id: int, *, lock: bool = False) -> ProjectPosition | None:
+        """모집 포지션을 조회하고 필요하면 갱신 잠금을 적용한다."""
+        query = select(ProjectPosition).where(ProjectPosition.project_position_id == position_id)
+        if lock:
+            query = query.with_for_update()
+        return db.scalar(query)
+
+    @staticmethod
     def replace(db: Session, project_id: int, items) -> None:
         """프로젝트의 모집 포지션을 요청 목록으로 교체한다."""
         db.execute(delete(ProjectPosition).where(ProjectPosition.project_id == project_id))

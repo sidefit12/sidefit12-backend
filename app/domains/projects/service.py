@@ -48,6 +48,19 @@ class ProjectService:
     """PROJECT-001~007, PROJECT-009의 프로젝트 규칙을 제공한다."""
 
     @staticmethod
+    def get_for_application(db: Session, project_id: int) -> Project:
+        """지원 도메인에서 검증할 삭제되지 않은 프로젝트를 반환한다."""
+        project = ProjectRepository.find(db, project_id)
+        if project is None or project.moderation_status == "HIDDEN":
+            raise ProjectNotFoundError(project_id)
+        return project
+
+    @staticmethod
+    def require_owner(db: Session, user: User, project_id: int) -> Project:
+        """요청 사용자가 프로젝트 소유자인지 검증한다."""
+        return ProjectService._owned(db, user, project_id)
+
+    @staticmethod
     def create(
         db: Session, user: User, request, idempotency_key: str | None = None
     ) -> ProjectDetailData:
