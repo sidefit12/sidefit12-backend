@@ -311,7 +311,7 @@ class ProjectApplicationService:
         member_data = None
         if member is not None:
             user = UserService.get_by_id(db, member.user_id)
-            profile = ProfileService.get_my_profile(db, user)
+            profile = ProfileService.get_user_summary(db, user.user_id)
             member_data = MemberResource(
                 project_member_id=member.project_member_id,
                 project_id=member.project_id,
@@ -325,8 +325,8 @@ class ProjectApplicationService:
                     nickname=user.nickname,
                     user_status=user.user_status,
                     system_role=user.system_role,
-                    onboarding_completed=profile.user.onboarding_completed,
-                    profile_image_url=profile.user.profile_image_url,
+                    onboarding_completed=bool(profile["onboarding_completed"]),
+                    profile_image_url=profile["profile_image_url"],
                 ),
             )
         return ApplicationDecisionData(
