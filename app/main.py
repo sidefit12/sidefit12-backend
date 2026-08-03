@@ -8,6 +8,10 @@ from app.core.exception_handlers import register_exception_handlers
 from app.core.logging import RequestLoggingMiddleware, configure_logging
 from app.domains.auth.openapi import apply_auth_openapi
 from app.domains.auth.router import router as auth_router
+from app.domains.notification_preferences.openapi import apply_notification_preference_openapi
+from app.domains.notification_preferences.router import router as notification_preferences_router
+from app.domains.notifications.openapi import apply_notification_openapi
+from app.domains.notifications.router import router as notifications_router
 from app.domains.project_applications.openapi import apply_application_openapi
 from app.domains.project_applications.router import router as applications_router
 from app.domains.project_bookmarks.openapi import apply_bookmark_openapi
@@ -33,6 +37,8 @@ app = FastAPI(
 app.add_middleware(RequestLoggingMiddleware)
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(notifications_router, prefix="/api/v1")
+app.include_router(notification_preferences_router, prefix="/api/v1")
 app.include_router(projects_router, prefix="/api/v1")
 app.include_router(applications_router, prefix="/api/v1")
 app.include_router(bookmarks_router, prefix="/api/v1")
@@ -49,6 +55,8 @@ def custom_openapi():
         title=app.title, version=app.version, description=app.description, routes=app.routes
     )
     schema = apply_auth_openapi(schema)
+    schema = apply_notification_openapi(schema)
+    schema = apply_notification_preference_openapi(schema)
     schema = apply_profile_openapi(schema)
     schema = apply_project_openapi(schema)
     schema = apply_application_openapi(schema)
