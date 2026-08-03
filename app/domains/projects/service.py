@@ -56,6 +56,23 @@ class ProjectService:
         return project
 
     @staticmethod
+    def find_visible(db: Session, project_id: int, viewer: User | None) -> Project | None:
+        """조회자에게 공개 가능한 삭제되지 않은 프로젝트를 반환한다."""
+        project = ProjectRepository.find(db, project_id)
+        if project is None or project.moderation_status == "HIDDEN":
+            return None
+        if project.visibility == "PRIVATE" and (
+            viewer is None or viewer.user_id != project.owner_user_id
+        ):
+            return None
+        return project
+
+    @staticmethod
+    def card(db: Session, project: Project, viewer: User | None) -> ProjectCard:
+        """다른 도메인에 기존 프로젝트 카드 응답 조합 기능을 제공한다."""
+        return ProjectService._card(db, project, viewer)
+
+    @staticmethod
     def require_owner(db: Session, user: User, project_id: int) -> Project:
         """요청 사용자가 프로젝트 소유자인지 검증한다."""
         return ProjectService._owned(db, user, project_id)
