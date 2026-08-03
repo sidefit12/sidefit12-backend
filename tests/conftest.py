@@ -15,6 +15,7 @@ from app.core.database import Base, get_db
 from app.domains.email_verifications import models as email_verification_models  # noqa: F401
 from app.domains.files import models as file_models  # noqa: F401
 from app.domains.idempotency_requests import models as idempotency_models  # noqa: F401
+from app.domains.notifications import models as notification_models  # noqa: F401
 from app.domains.project_applications import models as application_models  # noqa: F401
 from app.domains.project_bookmarks import models as bookmark_models  # noqa: F401
 from app.domains.project_collaboration_channels import models as channel_models  # noqa: F401

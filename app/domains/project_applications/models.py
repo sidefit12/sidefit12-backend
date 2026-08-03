@@ -7,6 +7,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Identity,
     String,
     Text,
@@ -24,18 +25,27 @@ class ProjectApplication(Base):
     __tablename__ = "project_applications"
     __table_args__ = (
         UniqueConstraint("project_id", "applicant_user_id", name="uk_project_applications_user"),
+        ForeignKeyConstraint(
+            ["project_id", "project_position_id"],
+            ["project_positions.project_id", "project_positions.project_position_id"],
+            name="fk_applications_positions",
+            ondelete="RESTRICT",
+        ),
         CheckConstraint(
             "application_status IN ('PENDING','ACCEPTED','REJECTED','CANCELED')",
             name="ck_project_applications_status",
+        ),
+        CheckConstraint(
+            "(application_status = 'PENDING' AND reviewed_at IS NULL) "
+            "OR application_status IN ('ACCEPTED','REJECTED','CANCELED')",
+            name="ck_project_applications_review",
         ),
     )
     project_application_id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     project_id: Mapped[int] = mapped_column(
         ForeignKey("projects.project_id", ondelete="CASCADE"), nullable=False
     )
-    project_position_id: Mapped[int] = mapped_column(
-        ForeignKey("project_positions.project_position_id", ondelete="RESTRICT"), nullable=False
-    )
+    project_position_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     applicant_user_id: Mapped[int] = mapped_column(
         ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False
     )

@@ -9,6 +9,16 @@ class ProjectPositionService:
     """Projects 도메인에 모집 포지션 연산을 제공한다."""
 
     @staticmethod
+    def find(db: Session, position_id: int, *, lock: bool = False):
+        """식별자로 모집 포지션을 조회한다."""
+        return ProjectPositionRepository.find(db, position_id, lock=lock)
+
+    @staticmethod
+    def close(db: Session, position) -> None:
+        """모집 정원이 찬 포지션을 마감한다."""
+        position.position_status = "CLOSED"
+
+    @staticmethod
     def replace(db: Session, project_id: int, items) -> None:
         """프로젝트 모집 포지션을 전체 교체한다."""
         ProjectPositionRepository.replace(db, project_id, items)

@@ -22,6 +22,28 @@ class ProjectMemberRepository:
         return member
 
     @staticmethod
+    def add_member(
+        db: Session,
+        *,
+        project_id: int,
+        user_id: int,
+        position_id: int,
+        application_id: int,
+    ) -> ProjectMember:
+        """승인된 지원자를 활성 팀원으로 추가한다."""
+        member = ProjectMember(
+            project_id=project_id,
+            user_id=user_id,
+            project_position_id=position_id,
+            project_application_id=application_id,
+            member_type="MEMBER",
+            member_status="ACTIVE",
+        )
+        db.add(member)
+        db.flush()
+        return member
+
+    @staticmethod
     def active_member_count(db: Session, project_id: int, *, exclude_owner: bool = False) -> int:
         query = (
             select(func.count())
