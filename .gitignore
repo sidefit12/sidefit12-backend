@@ -10,6 +10,9 @@ __pycache__/
 .env
 .env.*
 
+# Firebase service account credentials
+*-firebase-adminsdk-*.json
+
 # Test / coverage
 .pytest_cache/
 .coverage

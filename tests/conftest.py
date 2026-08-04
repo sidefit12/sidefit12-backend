@@ -29,6 +29,7 @@ from app.domains.project_members import models as member_models  # noqa: F401
 from app.domains.project_positions import models as position_models  # noqa: F401
 from app.domains.project_reviews import models as review_models  # noqa: F401
 from app.domains.projects import models as project_models  # noqa: F401
+from app.domains.push_devices import models as push_device_models  # noqa: F401
 from app.domains.recommendation_reasons import models as recommendation_reason_models  # noqa: F401
 from app.domains.recommendation_results import models as recommendation_result_models  # noqa: F401
 from app.domains.refresh_tokens import models as refresh_token_models  # noqa: F401

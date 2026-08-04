@@ -17,6 +17,7 @@ from app.domains.notifications.schemas import (
     PageMeta,
     ReadAllNotificationsData,
 )
+from app.domains.push_devices.service import PushDeviceService
 from app.domains.users.models import User
 
 
@@ -132,6 +133,20 @@ class NotificationService:
             reference_type=reference_type,
             reference_id=reference_id,
         )
+        db.flush()
+        try:
+            PushDeviceService.send_notification(
+                db,
+                user_id=user_id,
+                title=title,
+                content=content,
+                notification_type=notification_type,
+                reference_type=reference_type,
+                reference_id=reference_id,
+            )
+        except Exception:
+            # 푸시 장애가 인앱 알림 저장과 핵심 업무 처리를 중단시키지 않게 한다.
+            pass
         return True
 
     @staticmethod
