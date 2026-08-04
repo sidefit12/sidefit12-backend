@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Identity,
+    Index,
     String,
     UniqueConstraint,
     text,
@@ -30,12 +31,13 @@ class ProjectCollaborationChannel(Base):
             "channel_type IN ('DISCORD','KAKAO_OPEN_CHAT','SLACK','NOTION','OTHER')",
             name="ck_collaboration_channels_type",
         ),
+        Index("idx_collaboration_channels_project_active", "project_id", "is_active"),
     )
     project_collaboration_channel_id: Mapped[int] = mapped_column(
         BigInteger, Identity(), primary_key=True
     )
     project_id: Mapped[int] = mapped_column(
-        ForeignKey("projects.project_id", ondelete="CASCADE"), nullable=False, index=True
+        ForeignKey("projects.project_id", ondelete="CASCADE"), nullable=False
     )
     channel_type: Mapped[str] = mapped_column(String(30), nullable=False)
     channel_name: Mapped[str] = mapped_column(String(100), nullable=False)

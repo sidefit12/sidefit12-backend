@@ -20,14 +20,21 @@ from app.domains.project_applications.openapi import apply_application_openapi
 from app.domains.project_applications.router import router as applications_router
 from app.domains.project_bookmarks.openapi import apply_bookmark_openapi
 from app.domains.project_bookmarks.router import router as bookmarks_router
+from app.domains.project_collaboration_channels.openapi import apply_channel_openapi
+from app.domains.project_collaboration_channels.router import router as channels_router
 from app.domains.project_members.openapi import apply_member_openapi
 from app.domains.project_members.router import router as members_router
+from app.domains.project_reviews.openapi import apply_review_openapi
+from app.domains.project_reviews.router import router as reviews_router
 from app.domains.projects.openapi import apply_project_openapi
 from app.domains.projects.router import router as projects_router
 from app.domains.recommendations.openapi import apply_recommendation_openapi
 from app.domains.recommendations.router import router as recommendations_router
 from app.domains.reference_data.openapi import apply_reference_data_openapi
 from app.domains.reference_data.router import router as reference_data_router
+from app.domains.reports.admin_router import router as admin_reports_router
+from app.domains.reports.openapi import apply_report_openapi
+from app.domains.reports.router import router as reports_router
 from app.domains.user_profiles.openapi import apply_profile_openapi
 from app.domains.users.router import router as users_router
 
@@ -52,6 +59,10 @@ app.include_router(projects_router, prefix="/api/v1")
 app.include_router(applications_router, prefix="/api/v1")
 app.include_router(bookmarks_router, prefix="/api/v1")
 app.include_router(members_router, prefix="/api/v1")
+app.include_router(channels_router, prefix="/api/v1")
+app.include_router(reviews_router, prefix="/api/v1")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(admin_reports_router, prefix="/api/v1")
 app.include_router(reference_data_router, prefix="/api/v1")
 register_exception_handlers(app)
 
@@ -74,6 +85,9 @@ def custom_openapi():
     schema = apply_application_openapi(schema)
     schema = apply_bookmark_openapi(schema)
     schema = apply_member_openapi(schema)
+    schema = apply_channel_openapi(schema)
+    schema = apply_review_openapi(schema)
+    schema = apply_report_openapi(schema)
     app.openapi_schema = apply_reference_data_openapi(schema)
     return app.openapi_schema
 

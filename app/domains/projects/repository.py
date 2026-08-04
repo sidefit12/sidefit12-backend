@@ -144,3 +144,8 @@ class ProjectRepository:
             .where(ProjectTechStack.project_id == project_id)
             .order_by(ProjectTechStack.project_tech_stack_id)
         ).all()
+
+    @staticmethod
+    def hide(project: Project) -> None:
+        """관리자 조치로 프로젝트를 숨김 상태로 변경한다."""
+        project.moderation_status = "HIDDEN"

@@ -105,6 +105,31 @@ class ProjectService:
         return project
 
     @staticmethod
+    def find_or_raise_visible(db: Session, project_id: int, viewer: User | None) -> Project:
+        """공개 범위를 검증해 프로젝트를 반환하고 조회할 수 없으면 예외를 발생시킨다."""
+        project = ProjectService.find_visible(db, project_id, viewer)
+        if project is None:
+            raise ProjectNotFoundError(project_id)
+        return project
+
+    @staticmethod
+    def hide_by_admin(db: Session, project_id: int) -> Project:
+        """신고 처리에서 프로젝트를 숨김 상태로 변경한다."""
+        project = ProjectRepository.find(db, project_id, include_deleted=True)
+        if project is None:
+            raise ProjectNotFoundError(project_id)
+        ProjectRepository.hide(project)
+        return project
+
+    @staticmethod
+    def find_for_admin(db: Session, project_id: int) -> Project:
+        """관리자 화면에서 삭제 여부와 관계없이 프로젝트를 조회한다."""
+        project = ProjectRepository.find(db, project_id, include_deleted=True)
+        if project is None:
+            raise ProjectNotFoundError(project_id)
+        return project
+
+    @staticmethod
     def card(db: Session, project: Project, viewer: User | None) -> ProjectCard:
         """다른 도메인에 기존 프로젝트 카드 응답 조합 기능을 제공한다."""
         return ProjectService._card(db, project, viewer)

@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.domains.notifications.service import NotificationService
-from app.domains.project_collaboration_channels.service import ProjectCollaborationChannelService
 from app.domains.project_member_events.service import ProjectMemberEventService
 from app.domains.project_members.exceptions import (
     MemberAccessDeniedError,
@@ -70,6 +69,17 @@ class ProjectMemberService:
         return ProjectMemberRepository.active_member_count(db, project_id, exclude_owner=True) > 0
 
     @staticmethod
+    def is_active_member(db: Session, project_id: int, user_id: int) -> bool:
+        """사용자가 프로젝트의 활성 팀원인지 확인한다."""
+        member = ProjectMemberRepository.find_by_user(db, project_id, user_id)
+        return member is not None and member.member_status == "ACTIVE"
+
+    @staticmethod
+    def is_active_or_former_member(db: Session, project_id: int, user_id: int) -> bool:
+        """사용자가 프로젝트에 참여한 이력이 있는지 확인한다."""
+        return ProjectMemberRepository.find_by_user(db, project_id, user_id) is not None
+
+    @staticmethod
     def list_members(
         db: Session,
         user: User,
@@ -90,6 +100,10 @@ class ProjectMemberService:
         positions = ProjectPositionService.list_by_project(db, project_id)
         channels = None
         if include_channels:
+            from app.domains.project_collaboration_channels.service import (
+                ProjectCollaborationChannelService,
+            )
+
             channels = [
                 ChannelResource(
                     project_collaboration_channel_id=channel.project_collaboration_channel_id,

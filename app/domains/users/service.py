@@ -91,3 +91,8 @@ class UserService:
     def withdraw(user: User, *, withdrawn_at: datetime, password_hash: str) -> None:
         """검증을 마친 사용자를 복구 불가능한 탈퇴 상태로 변경한다."""
         UserRepository.withdraw(user, withdrawn_at=withdrawn_at, password_hash=password_hash)
+
+    @staticmethod
+    def suspend(user: User, suspended_at: datetime | None = None) -> None:
+        """관리자 검증 후 사용자를 정지 상태로 변경한다."""
+        UserRepository.suspend(user, suspended_at or datetime.now(timezone.utc))

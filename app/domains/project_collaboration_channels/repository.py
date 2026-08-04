@@ -41,3 +41,27 @@ class ProjectCollaborationChannelRepository:
             )
             .order_by(ProjectCollaborationChannel.project_collaboration_channel_id)
         ).all()
+
+    @staticmethod
+    def find(db: Session, project_id: int, channel_id: int):
+        """프로젝트에 속한 협업 채널을 조회한다."""
+        return db.scalar(
+            select(ProjectCollaborationChannel).where(
+                ProjectCollaborationChannel.project_id == project_id,
+                ProjectCollaborationChannel.project_collaboration_channel_id == channel_id,
+            )
+        )
+
+    @staticmethod
+    def add(db: Session, *, project_id: int, user_id: int, request):
+        """새 협업 채널을 생성한다."""
+        channel = ProjectCollaborationChannel(
+            project_id=project_id,
+            channel_type=request.channel_type,
+            channel_name=request.channel_name.strip(),
+            channel_url=str(request.channel_url),
+            registered_by_user_id=user_id,
+        )
+        db.add(channel)
+        db.flush()
+        return channel
