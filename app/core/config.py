@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     gemini_embedding_model: str = "gemini-embedding-001"
     gemini_embedding_dimension: int = 768
     gemini_embedding_version: str = "gemini-embedding-001-768-v1"
+    firebase_credentials_path: str | None = None
+    firebase_credentials_base64: str | None = None
+    firebase_project_id: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

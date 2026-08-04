@@ -266,7 +266,12 @@ flowchart TD
 
 Render에는 `.env` 파일을 업로드하지 않고 필요한 값을 Environment Variables로 등록합니다.
 
-모집 자동 종료 작업은 Render Cron Job에서 다음 명령으로 실행할 수 있습니다.
+모집 자동 종료 작업은 비용이 발생하는 Render Cron Job 대신 GitHub Actions 예약 작업으로
+10분마다 실행합니다. 워크플로는 `.github/workflows/recruitment-close.yml`에서 관리하며,
+GitHub Actions Secret의 `BACKEND_ENV_FILE`을 운영 환경변수 파일로 사용합니다.
+
+수동 실행이 필요한 경우 GitHub의 `Actions → 프로젝트 모집 자동 종료 → Run workflow`를
+사용하거나 다음 명령을 직접 실행할 수 있습니다.
 
 ```bash
 python -m app.jobs.recruitment_close
@@ -395,6 +400,10 @@ GEMINI_API_KEY=Google_AI_Studio에서_재발급한_키
 GEMINI_EMBEDDING_MODEL=gemini-embedding-001
 GEMINI_EMBEDDING_DIMENSION=768
 GEMINI_EMBEDDING_VERSION=gemini-embedding-001-768-v1
+
+FIREBASE_CREDENTIALS_PATH=Firebase_서비스계정_JSON_경로
+FIREBASE_CREDENTIALS_BASE64=
+FIREBASE_PROJECT_ID=Firebase_프로젝트_ID
 ```
 
 로컬 Docker PostgreSQL을 사용할 때만 다음 연결 문자열로 변경합니다.
@@ -620,3 +629,18 @@ python -m app.jobs.embedding_backfill --batch-size 50
 나머지 항목은 계속 처리하며, 종료 시 처리·건너뜀·실패 건수를 JSON으로 출력합니다.
 
 실제 API 키는 Git, README, 이슈, 채팅 또는 화면 캡처에 포함하지 않습니다.
+
+## FCM 푸시 알림 설정
+
+로컬에서는 Firebase 서비스 계정 JSON 경로를 `FIREBASE_CREDENTIALS_PATH`에 등록합니다.
+Render에서는 JSON 파일 전체를 Base64로 변환해 `FIREBASE_CREDENTIALS_BASE64`에 등록합니다.
+서비스 계정 파일과 Base64 값은 Git 또는 문서에 포함하지 않습니다.
+
+Supabase에는 [`sql/push_devices_setup.sql`](./sql/push_devices_setup.sql)을 실행합니다.
+프론트엔드는 Firebase Web SDK에서 발급받은 등록 토큰을 다음 API로 등록하고,
+로그아웃 또는 알림 권한 해제 시 삭제합니다.
+
+```text
+POST   /api/v1/users/me/push-devices
+DELETE /api/v1/users/me/push-devices
+```

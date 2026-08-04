@@ -28,6 +28,7 @@ from app.domains.project_reviews.openapi import apply_review_openapi
 from app.domains.project_reviews.router import router as reviews_router
 from app.domains.projects.openapi import apply_project_openapi
 from app.domains.projects.router import router as projects_router
+from app.domains.push_devices.router import router as push_devices_router
 from app.domains.recommendations.openapi import apply_recommendation_openapi
 from app.domains.recommendations.router import router as recommendations_router
 from app.domains.reference_data.openapi import apply_reference_data_openapi
@@ -55,6 +56,7 @@ app.include_router(home_router, prefix="/api/v1")
 app.include_router(recommendations_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(notification_preferences_router, prefix="/api/v1")
+app.include_router(push_devices_router, prefix="/api/v1")
 app.include_router(projects_router, prefix="/api/v1")
 app.include_router(applications_router, prefix="/api/v1")
 app.include_router(bookmarks_router, prefix="/api/v1")

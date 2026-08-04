@@ -1,0 +1,49 @@
+name: 프로젝트 모집 자동 종료
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recruitment-close
+  cancel-in-progress: false
+
+jobs:
+  close-recruitment:
+    name: 마감 대상 프로젝트 처리
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 저장소 코드 가져오기
+        uses: actions/checkout@v7
+
+      - name: Python 3.13 설정
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: 운영 환경 변수 파일 생성
+        env:
+          BACKEND_ENV_FILE: ${{ secrets.BACKEND_ENV_FILE }}
+        run: |
+          if [ -z "$BACKEND_ENV_FILE" ]; then
+            echo "BACKEND_ENV_FILE GitHub Actions Secret이 설정되지 않았습니다."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$BACKEND_ENV_FILE" > .env
+
+      - name: Python 의존성 설치
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: 모집 자동 종료 실행
+        run: python -m app.jobs.recruitment_close
