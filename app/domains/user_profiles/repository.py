@@ -52,6 +52,26 @@ class ProfileRepository:
                 profile.public_material_file_id = None
 
     @staticmethod
+    def anonymize(db: Session, user_id: int) -> None:
+        """탈퇴 사용자의 프로필 개인정보와 선택 관계를 제거한다."""
+        profile = ProfileRepository.find_profile(db, user_id)
+        if profile is not None:
+            profile.introduction = None
+            profile.external_link_url = None
+            profile.profile_image_file_id = None
+            profile.public_material_file_id = None
+            profile.career_level = None
+            profile.preferred_work_type = None
+            profile.preferred_region = None
+            profile.available_start_date = None
+            profile.available_end_date = None
+            profile.available_hours_per_week = None
+            profile.onboarding_completed = False
+        db.execute(delete(UserTopic).where(UserTopic.user_id == user_id))
+        db.execute(delete(UserTechStack).where(UserTechStack.user_id == user_id))
+        db.execute(delete(UserRole).where(UserRole.user_id == user_id))
+
+    @staticmethod
     def list_topics(db: Session, user_id: int) -> Sequence[tuple[UserTopic, Topic]]:
         """사용자의 관심 토픽 관계와 기준정보를 함께 조회한다."""
         return db.execute(

@@ -86,3 +86,8 @@ class UserService:
     def update_nickname(db: Session, user: User, nickname: str) -> None:
         """검증이 끝난 닉네임을 사용자 데이터에 반영한다."""
         UserRepository.update_nickname(db, user, nickname.strip())
+
+    @staticmethod
+    def withdraw(user: User, *, withdrawn_at: datetime, password_hash: str) -> None:
+        """검증을 마친 사용자를 복구 불가능한 탈퇴 상태로 변경한다."""
+        UserRepository.withdraw(user, withdrawn_at=withdrawn_at, password_hash=password_hash)

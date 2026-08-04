@@ -1,6 +1,6 @@
 """프로젝트 북마크 생성, 삭제 및 조회 데이터 접근 연산."""
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.domains.project_bookmarks.models import ProjectBookmark
@@ -48,4 +48,16 @@ class ProjectBookmarkRepository:
                 )
             )
             is not None
+        )
+
+    @staticmethod
+    def count_by_user(db: Session, user_id: int) -> int:
+        """사용자의 북마크 개수를 반환한다."""
+        return (
+            db.scalar(
+                select(func.count())
+                .select_from(ProjectBookmark)
+                .where(ProjectBookmark.user_id == user_id)
+            )
+            or 0
         )

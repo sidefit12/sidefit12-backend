@@ -52,6 +52,7 @@ REQUEST_EXAMPLES = {
         "newPasswordConfirm": "N3wP@ssword!",
         "resetToken": "prt_xxx",
     },
+    "AUTH_012_withdraw": {"confirmation": "WITHDRAW", "password": "P@ssw0rd!"},
 }
 SUCCESS_EXAMPLES = {
     "AUTH_001_email_availability": {
@@ -109,6 +110,7 @@ OPERATION_IDS = {
         (9, "current_user"),
         (10, "request_password_reset"),
         (11, "confirm_password_reset"),
+        (12, "withdraw"),
     ]
 }
 

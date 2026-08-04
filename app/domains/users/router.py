@@ -1,10 +1,12 @@
 """온보딩과 사용자 프로필 HTTP endpoint 모듈."""
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, Path, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.domains.auth.dependencies import get_current_user
+from app.domains.auth.schemas import WithdrawRequest
+from app.domains.auth.service import AuthService
 from app.domains.user_profiles.schemas import (
     OnboardingOptionsResponse,
     OnboardingRequest,
@@ -22,6 +24,28 @@ from app.domains.user_profiles.service import ProfileService
 from app.domains.users.models import User
 
 router = APIRouter(tags=["프로필"])
+
+
+@router.delete(
+    "/users/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="회원 탈퇴",
+    description="현재 비밀번호를 확인하고 개인정보를 익명화한 뒤 모든 세션을 폐기합니다.",
+    operation_id="AUTH_012_withdraw",
+    responses={
+        400: {"description": "활성 프로젝트가 있어 탈퇴할 수 없습니다."},
+        401: {"description": "현재 비밀번호가 일치하지 않습니다."},
+    },
+)
+def withdraw(
+    request: WithdrawRequest,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """회원 탈퇴 요청을 처리한다."""
+    AuthService.withdraw(db, user, request)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 
 AUTHENTICATION_REQUIRED = {
     "description": "로그인이 필요합니다.",

@@ -52,6 +52,30 @@ class ProfileService:
         ProfileRepository.detach_file_references(db, file_id)
 
     @staticmethod
+    def anonymize(db: Session, user_id: int) -> None:
+        """인증 도메인의 탈퇴 처리에 따라 프로필 개인정보를 제거한다."""
+        ProfileRepository.anonymize(db, user_id)
+
+    @staticmethod
+    def recommendation_profile(db: Session, user_id: int) -> dict[str, object]:
+        """추천 도메인에 온보딩 상태와 사용자 선택 식별자를 제공한다."""
+        profile = ProfileRepository.find_profile(db, user_id)
+        return {
+            "onboarding_completed": bool(profile and profile.onboarding_completed),
+            "preferred_work_type": profile.preferred_work_type if profile else None,
+            "topic_ids": {
+                relation.topic_id for relation, _ in ProfileRepository.list_topics(db, user_id)
+            },
+            "tech_stack_ids": {
+                relation.tech_stack_id
+                for relation, _ in ProfileRepository.list_tech_stacks(db, user_id)
+            },
+            "role_ids": {
+                relation.role_id for relation, _ in ProfileRepository.list_roles(db, user_id)
+            },
+        }
+
+    @staticmethod
     def onboarding_options(db: Session, user: User) -> OnboardingOptionsData:
         """활성 기준정보와 사용자의 현재 선택값을 반환한다."""
         topics = TopicService.list_active(db)

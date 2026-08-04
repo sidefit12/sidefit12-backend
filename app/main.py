@@ -10,6 +10,8 @@ from app.domains.auth.openapi import apply_auth_openapi
 from app.domains.auth.router import router as auth_router
 from app.domains.files.openapi import apply_file_openapi
 from app.domains.files.router import router as files_router
+from app.domains.home.openapi import apply_home_openapi
+from app.domains.home.router import router as home_router
 from app.domains.notification_preferences.openapi import apply_notification_preference_openapi
 from app.domains.notification_preferences.router import router as notification_preferences_router
 from app.domains.notifications.openapi import apply_notification_openapi
@@ -22,6 +24,8 @@ from app.domains.project_members.openapi import apply_member_openapi
 from app.domains.project_members.router import router as members_router
 from app.domains.projects.openapi import apply_project_openapi
 from app.domains.projects.router import router as projects_router
+from app.domains.recommendations.openapi import apply_recommendation_openapi
+from app.domains.recommendations.router import router as recommendations_router
 from app.domains.reference_data.openapi import apply_reference_data_openapi
 from app.domains.reference_data.router import router as reference_data_router
 from app.domains.user_profiles.openapi import apply_profile_openapi
@@ -40,6 +44,8 @@ app.add_middleware(RequestLoggingMiddleware)
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(files_router, prefix="/api/v1")
+app.include_router(home_router, prefix="/api/v1")
+app.include_router(recommendations_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(notification_preferences_router, prefix="/api/v1")
 app.include_router(projects_router, prefix="/api/v1")
@@ -59,6 +65,8 @@ def custom_openapi():
     )
     schema = apply_auth_openapi(schema)
     schema = apply_file_openapi(schema)
+    schema = apply_home_openapi(schema)
+    schema = apply_recommendation_openapi(schema)
     schema = apply_notification_openapi(schema)
     schema = apply_notification_preference_openapi(schema)
     schema = apply_profile_openapi(schema)

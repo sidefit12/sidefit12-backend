@@ -16,6 +16,7 @@ from app.domains.auth.exceptions import (
     EmailVerificationRequiredError,
     InvalidCredentialsError,
     InvalidPasswordResetTokenError,
+    InvalidStateTransitionError,
     InvalidTokenError,
     InvalidVerificationCodeError,
     NicknameAlreadyExistsError,
@@ -41,6 +42,7 @@ from app.domains.auth.schemas import (
     UserSummary,
     VerificationConfirmData,
     VerificationDispatchData,
+    WithdrawRequest,
 )
 from app.domains.email_verifications.service import EmailVerificationService
 from app.domains.refresh_tokens.service import RefreshTokenService
@@ -86,6 +88,28 @@ class AuthService:
     def _user_by_nickname(db: Session, nickname: str) -> User | None:
         """users service를 통해 닉네임으로 사용자를 조회한다."""
         return UserService.get_by_nickname(db, nickname)
+
+    @staticmethod
+    def withdraw(db: Session, user: User, request: WithdrawRequest) -> None:
+        """비밀번호와 프로젝트 책임을 검증한 후 회원을 익명화한다."""
+        from app.domains.projects.service import ProjectService
+        from app.domains.user_profiles.service import ProfileService
+
+        if user.user_status != "ACTIVE":
+            raise InvalidStateTransitionError()
+        if not verify_password(request.password, user.password_hash):
+            raise InvalidCredentialsError()
+        if ProjectService.has_active_owned_project(db, user.user_id):
+            raise InvalidStateTransitionError()
+        now = datetime.now(timezone.utc)
+        ProfileService.anonymize(db, user.user_id)
+        RefreshTokenService.revoke_all_by_user_id(db, user.user_id, now)
+        UserService.withdraw(
+            user,
+            withdrawn_at=now,
+            password_hash=hash_password(secrets.token_urlsafe(32)),
+        )
+        db.commit()
 
     @staticmethod
     def email_availability(db: Session, email: str) -> AvailabilityData:

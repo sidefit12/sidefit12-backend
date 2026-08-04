@@ -18,6 +18,11 @@ class ProjectBookmarkService:
         return ProjectBookmarkRepository.exists(db, user_id, project_id)
 
     @staticmethod
+    def count_by_user(db: Session, user_id: int) -> int:
+        """홈 활동 요약에 북마크 수를 제공한다."""
+        return ProjectBookmarkRepository.count_by_user(db, user_id)
+
+    @staticmethod
     def add(db: Session, user: User, project_id: int) -> dict[str, object]:
         """공개 가능한 프로젝트를 멱등하게 북마크한다."""
         from app.domains.projects.service import ProjectService
