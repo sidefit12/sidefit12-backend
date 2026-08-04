@@ -2,11 +2,13 @@
 
 import base64
 import json
+import math
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
+from app.domains.project_embeddings.service import ProjectEmbeddingService
 from app.domains.projects.exceptions import ProjectNotFoundError
 from app.domains.projects.service import ProjectService
 from app.domains.recommendation_reasons.service import RecommendationReasonService
@@ -20,6 +22,7 @@ from app.domains.recommendations.schemas import (
     RecommendationPageData,
     RecommendationReasonData,
 )
+from app.domains.user_embeddings.service import UserEmbeddingService
 from app.domains.user_profiles.service import ProfileService
 from app.domains.users.models import User
 
@@ -27,7 +30,7 @@ from app.domains.users.models import User
 class RecommendationService:
     """RECO-001~003 추천 규칙을 제공한다."""
 
-    VERSION = "rule-v1"
+    VERSION = "hybrid-v1"
 
     @staticmethod
     def page(db: Session, user: User, *, cursor: str | None, size: int):
@@ -132,13 +135,16 @@ class RecommendationService:
         topic = bool(profile["topic_ids"] & data["topic_ids"])
         tech = bool(profile["tech_stack_ids"] & data["tech_stack_ids"])
         score = (0.4 if role else 0) + (0.3 if topic else 0) + (0.3 if tech else 0)
+        semantic_score = RecommendationService._semantic_score(db, user.user_id, project.project_id)
+        final_score = score if semantic_score is None else score * 0.7 + semantic_score * 0.3
         now = datetime.now(timezone.utc)
         result = RecommendationResultService.create(
             db,
             user_id=user.user_id,
             project_id=project.project_id,
             rule_score=score,
-            final_score=score,
+            semantic_score=semantic_score,
+            final_score=final_score,
             version=RecommendationService.VERSION,
             generated_at=now,
             expires_at=now + timedelta(hours=6),
@@ -163,11 +169,34 @@ class RecommendationService:
                     0.3,
                 )
             )
+        if semantic_score is not None and semantic_score > 0:
+            reasons.append(
+                (
+                    "SEMANTIC_SIMILARITY",
+                    "프로필 내용과 프로젝트 모집 내용의 의미가 유사해요.",
+                    semantic_score * 0.3,
+                )
+            )
         if not reasons:
             reasons.append(("COLD_START", "새롭게 등록된 모집 중 프로젝트예요.", 0.0))
         RecommendationReasonService.create_all(db, result.recommendation_result_id, reasons[:3])
         db.flush()
         return result
+
+    @staticmethod
+    def _semantic_score(db: Session, user_id: int, project_id: int) -> float | None:
+        """저장된 사용자·프로젝트 벡터의 코사인 유사도를 0~1 범위로 반환한다."""
+        user_vector = UserEmbeddingService.vector(db, user_id)
+        project_vector = ProjectEmbeddingService.vector(db, project_id)
+        if user_vector is None or project_vector is None or len(user_vector) != len(project_vector):
+            return None
+        denominator = math.sqrt(sum(x * x for x in user_vector)) * math.sqrt(
+            sum(x * x for x in project_vector)
+        )
+        if denominator == 0:
+            return None
+        cosine = sum(x * y for x, y in zip(user_vector, project_vector, strict=True)) / denominator
+        return min(max((cosine + 1) / 2, 0), 1)
 
     @staticmethod
     def _fallback_item(db, user, project):

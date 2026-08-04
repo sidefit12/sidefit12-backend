@@ -29,5 +29,16 @@ class RecommendationResultRepository:
         return result
 
     @staticmethod
-    def delete_by_user(db: Session, user_id: int) -> None:
-        db.execute(delete(RecommendationResult).where(RecommendationResult.user_id == user_id))
+    def delete_by_user(db: Session, user_id: int) -> int:
+        result = db.execute(
+            delete(RecommendationResult).where(RecommendationResult.user_id == user_id)
+        )
+        return result.rowcount or 0
+
+    @staticmethod
+    def delete_by_project(db: Session, project_id: int) -> int:
+        """프로젝트 변경으로 무효화된 추천 결과를 삭제한다."""
+        result = db.execute(
+            delete(RecommendationResult).where(RecommendationResult.project_id == project_id)
+        )
+        return result.rowcount or 0

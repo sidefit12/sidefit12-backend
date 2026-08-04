@@ -24,10 +24,10 @@ class NotificationService:
     """NOTI-001~004와 다른 도메인의 업무 알림 생성을 제공한다."""
 
     @staticmethod
-    def application_received(db: Session, owner_user_id: int, application_id: int) -> None:
+    def application_received(db: Session, owner_user_id: int, application_id: int) -> bool:
         if not NotificationPreferenceService.is_enabled(db, owner_user_id, "APPLICATION"):
-            return
-        NotificationRepository.add(
+            return False
+        return NotificationService._add_once(
             db,
             user_id=owner_user_id,
             notification_type="APPLICATION_RECEIVED",
@@ -40,10 +40,10 @@ class NotificationService:
     @staticmethod
     def application_decided(
         db: Session, applicant_user_id: int, application_id: int, *, accepted: bool
-    ) -> None:
+    ) -> bool:
         if not NotificationPreferenceService.is_enabled(db, applicant_user_id, "APPLICATION"):
-            return
-        NotificationRepository.add(
+            return False
+        return NotificationService._add_once(
             db,
             user_id=applicant_user_id,
             notification_type="APPLICATION_ACCEPTED" if accepted else "APPLICATION_REJECTED",
@@ -54,10 +54,10 @@ class NotificationService:
         )
 
     @staticmethod
-    def team_member_changed(db: Session, user_id: int, project_id: int, *, event_type: str) -> None:
+    def team_member_changed(db: Session, user_id: int, project_id: int, *, event_type: str) -> bool:
         """확정 Enum을 사용해 팀원 이탈·복구 알림을 생성한다."""
         if not NotificationPreferenceService.is_enabled(db, user_id, "TEAM"):
-            return
+            return False
         messages = {
             "LEFT": (
                 "MEMBER_LEFT",
@@ -76,7 +76,7 @@ class NotificationService:
             ),
         }
         notification_type, title, content = messages[event_type]
-        NotificationRepository.add(
+        return NotificationService._add_once(
             db,
             user_id=user_id,
             notification_type=notification_type,
@@ -85,6 +85,54 @@ class NotificationService:
             reference_type="PROJECT",
             reference_id=project_id,
         )
+
+    @staticmethod
+    def recruitment_closed(db: Session, owner_user_id: int, project_id: int) -> bool:
+        """모집 자동 종료 알림을 수신 설정과 멱등 규칙에 따라 생성한다."""
+        if not NotificationPreferenceService.is_enabled(db, owner_user_id, "RECRUITMENT_DEADLINE"):
+            return False
+        return NotificationService._add_once(
+            db,
+            user_id=owner_user_id,
+            notification_type="RECRUITMENT_CLOSED",
+            title="프로젝트 모집이 종료되었습니다.",
+            content="마감일 경과 또는 포지션 충원으로 모집이 자동 종료되었습니다.",
+            reference_type="PROJECT",
+            reference_id=project_id,
+        )
+
+    @staticmethod
+    def _add_once(
+        db: Session,
+        *,
+        user_id: int,
+        notification_type: str,
+        title: str,
+        content: str,
+        reference_type: str,
+        reference_id: int,
+    ) -> bool:
+        """동일 이벤트의 알림을 한 번만 생성한다."""
+        existing = NotificationRepository.find_equivalent(
+            db,
+            user_id=user_id,
+            notification_type=notification_type,
+            reference_type=reference_type,
+            reference_id=reference_id,
+            content=content,
+        )
+        if existing is not None:
+            return False
+        NotificationRepository.add(
+            db,
+            user_id=user_id,
+            notification_type=notification_type,
+            title=title,
+            content=content,
+            reference_type=reference_type,
+            reference_id=reference_id,
+        )
+        return True
 
     @staticmethod
     def page(

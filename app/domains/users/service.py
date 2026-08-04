@@ -36,6 +36,13 @@ class UserService:
         """정규화된 닉네임으로 사용자를 조회한다."""
         return UserRepository.find_by_nickname(db, cls.normalize_nickname(nickname))
 
+    @staticmethod
+    def list_embedding_target_ids(db: Session, *, after_user_id: int, limit: int) -> list[int]:
+        """임베딩 백필 도메인에 활성 사용자 식별자를 제공한다."""
+        return UserRepository.list_embedding_target_ids(
+            db, after_user_id=after_user_id, limit=limit
+        )
+
     @classmethod
     def create_active_user(
         cls,

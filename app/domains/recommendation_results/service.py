@@ -21,6 +21,7 @@ class RecommendationResultService:
         user_id: int,
         project_id: int,
         rule_score: float,
+        semantic_score: float | None,
         final_score: float,
         version: str,
         generated_at: datetime,
@@ -33,7 +34,9 @@ class RecommendationResultService:
                 user_id=user_id,
                 project_id=project_id,
                 rule_score=Decimal(str(rule_score)),
-                semantic_score=None,
+                semantic_score=(
+                    Decimal(str(semantic_score)) if semantic_score is not None else None
+                ),
                 final_score=Decimal(str(final_score)),
                 recommendation_version=version,
                 generated_at=generated_at,
@@ -42,5 +45,10 @@ class RecommendationResultService:
         )
 
     @staticmethod
-    def delete_by_user(db: Session, user_id: int) -> None:
-        RecommendationResultRepository.delete_by_user(db, user_id)
+    def delete_by_user(db: Session, user_id: int) -> int:
+        return RecommendationResultRepository.delete_by_user(db, user_id)
+
+    @staticmethod
+    def delete_by_project(db: Session, project_id: int) -> int:
+        """프로젝트를 참조하는 저장 추천 결과를 무효화한다."""
+        return RecommendationResultRepository.delete_by_project(db, project_id)

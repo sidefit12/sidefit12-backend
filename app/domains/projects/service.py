@@ -56,6 +56,13 @@ class ProjectService:
         return project
 
     @staticmethod
+    def list_embedding_target_ids(db: Session, *, after_project_id: int, limit: int) -> list[int]:
+        """임베딩 백필 도메인에 공개 가능한 프로젝트 식별자를 제공한다."""
+        return ProjectRepository.list_embedding_target_ids(
+            db, after_project_id=after_project_id, limit=limit
+        )
+
+    @staticmethod
     def has_active_owned_project(db: Session, user_id: int) -> bool:
         """회원 탈퇴 전 종료되지 않은 소유 프로젝트 존재 여부를 제공한다."""
         return ProjectRepository.has_active_owned_project(db, user_id)
@@ -130,6 +137,57 @@ class ProjectService:
         return project
 
     @staticmethod
+    def recruiting_for_automatic_close(db: Session) -> list[Project]:
+        """스케줄 작업이 검사할 모집 중 프로젝트를 반환한다."""
+        return ProjectRepository.recruiting_for_automatic_close(db)
+
+    @staticmethod
+    def update_recommendation_text(db: Session, project_id: int, *, embedding_version: str) -> bool:
+        """프로젝트의 추천용 텍스트를 정규화하고 처리 버전을 기록한다."""
+        project = ProjectRepository.find(db, project_id)
+        if project is None:
+            raise ProjectNotFoundError(project_id)
+        normalized_text = ProjectService.recommendation_text(db, project_id)
+        return ProjectRepository.update_recommendation_text(
+            project,
+            normalized_text=normalized_text,
+            embedding_version=embedding_version,
+        )
+
+    @staticmethod
+    def recommendation_text(db: Session, project_id: int) -> str:
+        """임베딩 도메인에 프로젝트 모집 정보를 정규화한 텍스트로 제공한다."""
+        project = ProjectRepository.find(db, project_id)
+        if project is None:
+            raise ProjectNotFoundError(project_id)
+        topic_relations = ProjectRepository.topics(db, project_id)
+        tech_relations = ProjectRepository.tech_stacks(db, project_id)
+        positions = ProjectPositionService.list_by_project(db, project_id)
+        topics = TopicService.find_by_ids(db, {item.topic_id for item in topic_relations})
+        tech_stacks = TechStackService.find_by_ids(
+            db, {item.tech_stack_id for item in tech_relations}
+        )
+        roles = RoleService.find_by_ids(db, {item.role_id for item in positions})
+        parts = [
+            project.title,
+            project.summary,
+            ProjectService._sanitize(project.description),
+            project.work_type,
+            project.region,
+            *(item.topic_name for item in topics),
+            *(item.tech_stack_name for item in tech_stacks),
+            *(item.role_name for item in roles),
+            *(item.position_title for item in positions),
+            *(item.responsibilities for item in positions),
+        ]
+        return " ".join(str(value).strip() for value in parts if value).lower()
+
+    @staticmethod
+    def close_recruitment_automatically(project: Project, closed_at: datetime) -> None:
+        """검증을 마친 프로젝트를 자동 모집 종료 상태로 변경한다."""
+        ProjectRepository.close_recruitment(project, closed_at)
+
+    @staticmethod
     def card(db: Session, project: Project, viewer: User | None) -> ProjectCard:
         """다른 도메인에 기존 프로젝트 카드 응답 조합 기능을 제공한다."""
         return ProjectService._card(db, project, viewer)
@@ -183,6 +241,13 @@ class ProjectService:
                 db, user.user_id, idempotency_key, request_hash, project.project_id
             )
         db.commit()
+        from app.domains.internal_processing.schemas import RecommendationUpdateEvent
+        from app.domains.internal_processing.service import InternalProcessingService
+
+        InternalProcessingService.refresh_recommendation_data(
+            db,
+            RecommendationUpdateEvent(target_type="PROJECT", target_id=project.project_id),
+        )
         return ProjectService.detail(db, project.project_id, user, increase_view=False)
 
     @staticmethod
@@ -303,6 +368,7 @@ class ProjectService:
             ProjectPositionService.replace(db, project_id, request.positions)
         project.updated_at = datetime.now(timezone.utc)
         db.commit()
+        ProjectService._refresh_recommendations(db, project_id)
         return ProjectService.detail(db, project_id, user, increase_view=False)
 
     @staticmethod
@@ -320,6 +386,10 @@ class ProjectService:
         project.deleted_by_user_id = user.user_id
         project.deletion_reason = reason.strip()
         project.updated_at = project.deleted_at
+        db.commit()
+        from app.domains.recommendation_results.service import RecommendationResultService
+
+        RecommendationResultService.delete_by_project(db, project_id)
         db.commit()
 
     @staticmethod
@@ -417,6 +487,17 @@ class ProjectService:
     @staticmethod
     def _sanitize(value):
         return re.sub(r"<[^>]+>", "", value).strip()
+
+    @staticmethod
+    def _refresh_recommendations(db: Session, project_id: int) -> None:
+        """프로젝트 변경 이벤트에 해당하는 추천 데이터를 갱신한다."""
+        from app.domains.internal_processing.schemas import RecommendationUpdateEvent
+        from app.domains.internal_processing.service import InternalProcessingService
+
+        InternalProcessingService.refresh_recommendation_data(
+            db,
+            RecommendationUpdateEvent(target_type="PROJECT", target_id=project_id),
+        )
 
     @staticmethod
     def _status(project):

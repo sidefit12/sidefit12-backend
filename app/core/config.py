@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     storage_bucket: str | None = None
     storage_region: str = "ap-northeast-2"
     storage_public_base_url: str | None = None
+    gemini_api_key: str | None = None
+    gemini_embedding_model: str = "gemini-embedding-001"
+    gemini_embedding_dimension: int = 768
+    gemini_embedding_version: str = "gemini-embedding-001-768-v1"
 
     model_config = SettingsConfigDict(
         env_file=".env",
