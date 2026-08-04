@@ -76,3 +76,9 @@ class UserRepository:
         user.last_login_at = None
         user.deleted_at = withdrawn_at
         user.updated_at = withdrawn_at
+
+    @staticmethod
+    def suspend(user: User, suspended_at: datetime) -> None:
+        """관리자 조치로 사용자를 정지 상태로 변경한다."""
+        user.user_status = "SUSPENDED"
+        user.updated_at = suspended_at
