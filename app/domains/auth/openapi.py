@@ -15,7 +15,7 @@ TOKEN = {
     "accessToken": "at_xxx",
     "refreshToken": "rt_xxx",
     "tokenType": "Bearer",
-    "expiresIn": 1800,
+    "expiresIn": 3600,
     "user": USER,
 }
 
@@ -87,7 +87,7 @@ SUCCESS_EXAMPLES = {
             "accessToken": "at_new",
             "refreshToken": "rt_new",
             "tokenType": "Bearer",
-            "expiresIn": 1800,
+            "expiresIn": 3600,
         },
     },
     "AUTH_009_current_user": {"success": True, "data": {"user": USER}},

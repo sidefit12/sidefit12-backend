@@ -15,6 +15,7 @@ REJECT_REQUEST_EXAMPLE = {
 APPLICATION_EXAMPLE = {
     "applicationId": 200,
     "projectId": 100,
+    "projectTitle": "사이드 프로젝트 팀원 모집",
     "projectPositionId": 21,
     "applicationMessage": "백엔드 API 개발 경험으로 프로젝트에 기여하겠습니다.",
     "applicationStatus": "PENDING",

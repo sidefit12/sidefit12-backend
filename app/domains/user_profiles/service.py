@@ -5,15 +5,20 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from app.domains.project_applications.repository import ProjectApplicationRepository
+from app.domains.project_bookmarks.repository import ProjectBookmarkRepository
+from app.domains.projects.repository import ProjectRepository
 from app.domains.roles.service import RoleService
 from app.domains.tech_stacks.service import TechStackService
 from app.domains.topics.service import TopicService
 from app.domains.user_profiles.repository import ProfileRepository
 from app.domains.user_profiles.schemas import (
+    ActivitySummaryData,
     CurrentSelection,
     OnboardingOptionsData,
     OnboardingRequest,
     ProfileData,
+    ProfileFileData,
     ProfileUpdateRequest,
     ProfileUser,
     PublicProfileData,
@@ -32,10 +37,22 @@ from app.domains.users.exceptions import (
 )
 from app.domains.users.models import User
 from app.domains.users.service import UserService
+from app.integrations.object_storage import ObjectStorage
 
 
 class ProfileService:
     """PROFILE-001~008의 조회와 저장 규칙을 제공한다."""
+
+    @staticmethod
+    def activity_summary(db: Session, user: User) -> ActivitySummaryData:
+        """사용자가 작성·지원·북마크한 프로젝트의 상태별 건수를 반환한다."""
+        application_counts = ProjectApplicationRepository.status_counts(db, user_id=user.user_id)
+        return ActivitySummaryData(
+            authored_project_count=ProjectRepository.count_by_owner(db, user.user_id),
+            pending_application_count=application_counts.get("PENDING", 0),
+            accepted_application_count=application_counts.get("ACCEPTED", 0),
+            bookmarked_project_count=ProjectBookmarkRepository.count_by_user(db, user.user_id),
+        )
 
     @staticmethod
     def get_user_summary(db: Session, user_id: int) -> dict[str, object]:
@@ -126,7 +143,9 @@ class ProfileService:
         )
 
     @staticmethod
-    def save_onboarding(db: Session, user: User, request: OnboardingRequest) -> ProfileData:
+    def save_onboarding(
+        db: Session, user: User, request: OnboardingRequest, storage: ObjectStorage
+    ) -> ProfileData:
         """프로필 기본값과 토픽·기술·역할 선택을 하나의 트랜잭션으로 저장한다."""
         TopicService.validate_active_ids(db, set(request.topic_ids))
         TechStackService.validate_active_ids(
@@ -141,13 +160,13 @@ class ProfileService:
         ProfileRepository.replace_roles(db, user.user_id, request.roles)
         db.commit()
         ProfileService._refresh_recommendations(db, user.user_id)
-        return ProfileService.get_my_profile(db, user)
+        return ProfileService.get_my_profile(db, user, storage)
 
     @staticmethod
-    def get_my_profile(db: Session, user: User) -> ProfileData:
+    def get_my_profile(db: Session, user: User, storage: ObjectStorage) -> ProfileData:
         """이메일과 참여 선호 정보를 포함한 본인 프로필을 반환한다."""
         profile = ProfileRepository.get_or_create_profile(db, user.user_id)
-        return ProfileService._profile_data(db, user, profile)
+        return ProfileService._profile_data(db, user, profile, storage)
 
     @staticmethod
     def get_public_profile(db: Session, user_id: int) -> PublicProfileData:
@@ -160,21 +179,22 @@ class ProfileService:
         profile = ProfileRepository.find_profile(db, user_id)
         if profile is None:
             raise ProfileNotFoundError(user_id)
-        data = ProfileService._profile_data(db, user, profile)
         return PublicProfileData(
             user_id=user.user_id,
             nickname=user.nickname,
-            introduction=data.introduction,
-            profile_image_file_id=data.profile_image_file_id,
-            public_material_file_id=data.public_material_file_id,
-            external_link_url=data.external_link_url,
-            topics=data.topics,
-            tech_stacks=data.tech_stacks,
-            roles=data.roles,
+            introduction=profile.introduction,
+            profile_image_file_id=profile.profile_image_file_id,
+            public_material_file_id=profile.public_material_file_id,
+            external_link_url=profile.external_link_url,
+            topics=ProfileService._selected_topics(db, user.user_id),
+            tech_stacks=ProfileService._selected_tech_stacks(db, user.user_id),
+            roles=ProfileService._selected_roles(db, user.user_id),
         )
 
     @staticmethod
-    def update_profile(db: Session, user: User, request: ProfileUpdateRequest) -> ProfileData:
+    def update_profile(
+        db: Session, user: User, request: ProfileUpdateRequest, storage: ObjectStorage
+    ) -> ProfileData:
         """닉네임, 기본 프로필, 파일 참조 및 공개 링크를 부분 수정한다."""
         if request.nickname is not None:
             nickname = request.nickname.strip()
@@ -209,7 +229,7 @@ class ProfileService:
             )
         db.commit()
         ProfileService._refresh_recommendations(db, user.user_id)
-        return ProfileService.get_my_profile(db, user)
+        return ProfileService.get_my_profile(db, user, storage)
 
     @staticmethod
     def replace_topics(db: Session, user: User, topic_ids: list[int]) -> TopicSelectionData:
@@ -252,8 +272,10 @@ class ProfileService:
         )
 
     @staticmethod
-    def _profile_data(db: Session, user: User, profile) -> ProfileData:
+    def _profile_data(db: Session, user: User, profile, storage: ObjectStorage) -> ProfileData:
         """ORM 데이터를 본인 프로필 응답 schema로 조합한다."""
+        profile_image = ProfileService._profile_file(db, profile.profile_image_file_id, storage)
+        public_material = ProfileService._profile_file(db, profile.public_material_file_id, storage)
         return ProfileData(
             user=ProfileUser(
                 user_id=user.user_id,
@@ -262,7 +284,7 @@ class ProfileService:
                 user_status=user.user_status,
                 system_role=user.system_role,
                 onboarding_completed=profile.onboarding_completed,
-                profile_image_url=None,
+                profile_image_url=profile_image.url if profile_image else None,
             ),
             introduction=profile.introduction,
             career_level=profile.career_level,
@@ -273,10 +295,30 @@ class ProfileService:
             available_hours_per_week=profile.available_hours_per_week,
             profile_image_file_id=profile.profile_image_file_id,
             public_material_file_id=profile.public_material_file_id,
+            profile_image=profile_image,
+            public_material=public_material,
             external_link_url=profile.external_link_url,
             topics=ProfileService._selected_topics(db, user.user_id),
             tech_stacks=ProfileService._selected_tech_stacks(db, user.user_id),
             roles=ProfileService._selected_roles(db, user.user_id),
+        )
+
+    @staticmethod
+    def _profile_file(
+        db: Session, file_id: int | None, storage: ObjectStorage
+    ) -> ProfileFileData | None:
+        """활성 프로필 파일의 원본 이름과 접근 URL을 반환한다."""
+        if file_id is None:
+            return None
+        from app.domains.files.repository import FileRepository
+
+        file = FileRepository.find(db, file_id)
+        if file is None or file.file_status != "ACTIVE":
+            return None
+        return ProfileFileData(
+            file_id=file.file_id,
+            original_name=file.original_name,
+            url=storage.url(file.storage_key, public=file.visibility == "PUBLIC"),
         )
 
     @staticmethod

@@ -75,6 +75,10 @@ def test_profile_001_to_008_flow(
     assert onboarding.status_code == 200
     assert onboarding.json()["data"]["user"]["onboardingCompleted"] is True
 
+    current_user = client.get("/api/v1/auth/me", headers=headers)
+    assert current_user.status_code == 200
+    assert current_user.json()["data"]["user"]["onboardingCompleted"] is True
+
     mine = client.get("/api/v1/users/me/profile", headers=headers)
     assert mine.status_code == 200
     user_id = mine.json()["data"]["user"]["userId"]

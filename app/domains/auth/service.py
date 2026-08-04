@@ -65,14 +65,18 @@ def as_utc(value: datetime) -> datetime:
     return value.astimezone(timezone.utc)
 
 
-def to_summary(user: User) -> UserSummary:
+def to_summary(db: Session, user: User) -> UserSummary:
     """User ORM 객체를 외부 응답용 사용자 요약 schema로 변환한다."""
+    from app.domains.user_profiles.repository import ProfileRepository
+
+    profile = ProfileRepository.find_profile(db, user.user_id)
     return UserSummary(
         user_id=user.user_id,
         email=user.email,
         nickname=user.nickname,
         user_status=user.user_status,
         system_role=user.system_role,
+        onboarding_completed=bool(profile and profile.onboarding_completed),
     )
 
 
@@ -285,7 +289,7 @@ class AuthService:
         )
         db.commit()
         UserService.refresh(db, user)
-        return AuthService._auth_data(user, tokens)
+        return AuthService._auth_data(db, user, tokens)
 
     @staticmethod
     def login(
@@ -317,7 +321,7 @@ class AuthService:
             "사용자 로그인이 완료되었습니다.",
             extra={"event": "user_login_succeeded", "user_id": user.user_id},
         )
-        return AuthService._auth_data(user, tokens)
+        return AuthService._auth_data(db, user, tokens)
 
     @staticmethod
     def refresh(
@@ -503,6 +507,6 @@ class AuthService:
         return tokens
 
     @staticmethod
-    def _auth_data(user: User, tokens: TokenData) -> AuthData:
+    def _auth_data(db: Session, user: User, tokens: TokenData) -> AuthData:
         """발급된 토큰과 사용자 정보를 인증 응답 데이터로 구성한다."""
-        return AuthData(**tokens.model_dump(), user=to_summary(user))
+        return AuthData(**tokens.model_dump(), user=to_summary(db, user))

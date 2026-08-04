@@ -33,6 +33,7 @@ from app.domains.project_applications.schemas import (
 )
 from app.domains.project_members.service import ProjectMemberService
 from app.domains.project_positions.service import ProjectPositionService
+from app.domains.projects.repository import ProjectRepository
 from app.domains.user_profiles.service import ProfileService
 from app.domains.users.models import User
 from app.domains.users.service import UserService
@@ -280,11 +281,17 @@ class ProjectApplicationService:
         return ProjectApplicationService._decision(db, application)
 
     @staticmethod
-    def _resource(db: Session, application) -> ApplicationResource:
+    def _resource(
+        db: Session, application, *, project_title: str | None = None
+    ) -> ApplicationResource:
         applicant = UserService.get_by_id(db, application.applicant_user_id)
+        if project_title is None:
+            project = ProjectRepository.find(db, application.project_id, include_deleted=True)
+            project_title = project.title if project is not None else ""
         return ApplicationResource(
             application_id=application.project_application_id,
             project_id=application.project_id,
+            project_title=project_title,
             project_position_id=application.project_position_id,
             application_message=application.application_message,
             application_status=application.application_status,
@@ -296,8 +303,16 @@ class ProjectApplicationService:
 
     @staticmethod
     def _page_result(db, items, counts, page, size, total):
+        project_titles = ProjectRepository.titles_by_ids(db, {item.project_id for item in items})
         return ApplicationPageData(
-            items=[ProjectApplicationService._resource(db, item) for item in items],
+            items=[
+                ProjectApplicationService._resource(
+                    db,
+                    item,
+                    project_title=project_titles.get(item.project_id, ""),
+                )
+                for item in items
+            ],
             status_counts=counts,
         ), PageMeta(
             page=page,

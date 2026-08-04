@@ -336,7 +336,7 @@ class AuthResponse(CamelModel):
                 "success": True,
                 "data": {
                     "accessToken": "at_xxx",
-                    "expiresIn": 1800,
+                    "expiresIn": 3600,
                     "refreshToken": "rt_xxx",
                     "tokenType": "Bearer",
                     "user": {
@@ -374,7 +374,7 @@ class TokenResponse(CamelModel):
         json_schema_extra={
             "example": {
                 "success": True,
-                "data": {"accessToken": "at_new", "expiresIn": 1800, "refreshToken": "rt_new"},
+                "data": {"accessToken": "at_new", "expiresIn": 3600, "refreshToken": "rt_new"},
             }
         },
     )

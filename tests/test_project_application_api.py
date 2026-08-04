@@ -113,6 +113,7 @@ def test_application_create_list_detail_and_accept(client: TestClient, db_sessio
     mine = client.get("/api/v1/users/me/applications", headers=_header(applicant))
     assert mine.status_code == 200
     assert mine.json()["data"]["statusCounts"] == {"PENDING": 1}
+    assert mine.json()["data"]["items"][0]["projectTitle"] == project.title
 
     applicants = client.get(
         f"/api/v1/projects/{project.project_id}/applications", headers=_header(owner)

@@ -33,6 +33,17 @@ class ProjectRepository:
         return db.scalar(query)
 
     @staticmethod
+    def titles_by_ids(db: Session, project_ids: set[int]) -> dict[int, str]:
+        """프로젝트 식별자별 제목을 한 번의 쿼리로 조회한다."""
+        if not project_ids:
+            return {}
+        return dict(
+            db.execute(
+                select(Project.project_id, Project.title).where(Project.project_id.in_(project_ids))
+            ).all()
+        )
+
+    @staticmethod
     def has_active_owned_project(db: Session, user_id: int) -> bool:
         """사용자가 책임지고 있는 종료 전 프로젝트가 있는지 확인한다."""
         return (

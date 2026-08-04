@@ -210,9 +210,9 @@ def logout(
     operation_id="AUTH_009_current_user",
     responses={401: AUTHENTICATION_REQUIRED, 404: {"description": "사용자를 찾을 수 없습니다."}},
 )
-def me(user=Depends(get_current_user)):
+def me(user=Depends(get_current_user), db: Session = Depends(get_db)):
     """현재 access token의 사용자 정보를 반환한다."""
-    return {"data": {"user": to_summary(user)}}
+    return {"data": {"user": to_summary(db, user)}}
 
 
 @router.post(

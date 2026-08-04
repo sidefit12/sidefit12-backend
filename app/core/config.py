@@ -10,13 +10,14 @@ class Settings(BaseSettings):
 
     database_url: str
     jwt_secret_key: str = "change-me-in-production"
-    access_token_expire_minutes: int = 30
+    access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 14
     maileroo_api_key: str
     maileroo_from_email: str
     maileroo_from_name: str = "SideFit"
     maileroo_api_url: str = "https://smtp.maileroo.com/api/v2/emails"
     frontend_password_reset_url: str = "http://localhost:3000/password-reset"
+    cors_origins: str = "http://localhost:5173"
     log_level: str = "INFO"
     storage_endpoint_url: str | None = None
     storage_access_key: str | None = None

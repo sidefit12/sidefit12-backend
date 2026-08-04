@@ -66,6 +66,23 @@ class OnboardingOptionsResponse(ProfileModel):
     data: OnboardingOptionsData
 
 
+class ActivitySummaryData(ProfileModel):
+    """로그인 사용자의 프로젝트 관련 활동 건수."""
+
+    authored_project_count: int
+    pending_application_count: int
+    accepted_application_count: int
+    bookmarked_project_count: int
+
+
+class ActivitySummaryResponse(ProfileModel):
+    """내 활동 요약 조회 응답."""
+
+    success: bool = True
+    data: ActivitySummaryData
+    request_id: str | None = None
+
+
 class TechStackSelection(ProfileModel):
     """사용자가 저장할 기술 스택 숙련 정보."""
 
@@ -214,12 +231,22 @@ class SelectedRole(RoleItem):
     experience_level: str | None = None
 
 
+class ProfileFileData(ProfileModel):
+    """프로필에 연결된 파일의 표시 정보."""
+
+    file_id: int
+    original_name: str
+    url: str
+
+
 class ProfileData(ProfileFields):
     """본인 프로필 상세 응답 데이터."""
 
     user: ProfileUser
     profile_image_file_id: int | None = None
     public_material_file_id: int | None = None
+    profile_image: ProfileFileData | None = None
+    public_material: ProfileFileData | None = None
     external_link_url: str | None = None
     topics: list[SelectedTopic]
     tech_stacks: list[SelectedTechStack]

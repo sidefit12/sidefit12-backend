@@ -1,6 +1,7 @@
 """SideFit FastAPI 애플리케이션 생성 및 전역 설정 모듈."""
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
 from app.core.config import get_settings
@@ -48,6 +49,14 @@ app = FastAPI(
     version="0.1.0",
 )
 
+allowed_origins = [origin.strip().rstrip("/") for origin in settings.cors_origins.split(",")]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.add_middleware(RequestLoggingMiddleware)
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")

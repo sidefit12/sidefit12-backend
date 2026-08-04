@@ -90,6 +90,13 @@ def test_file_upload_idempotency_and_profile_reference(
     )
     assert profile.status_code == 200
     assert profile.json()["data"]["profileImageFileId"] == resource["fileId"]
+    assert profile.json()["data"]["profileImage"] == {
+        "fileId": resource["fileId"],
+        "originalName": "avatar.png",
+        "url": resource["url"],
+    }
+    assert profile.json()["data"]["user"]["profileImageUrl"] == resource["url"]
+    assert profile.json()["data"]["publicMaterial"] is None
 
 
 def test_file_validation_and_ownership(client: TestClient, db_session: Session) -> None:

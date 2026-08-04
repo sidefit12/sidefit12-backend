@@ -4,10 +4,12 @@ from fastapi import APIRouter, Depends, Path, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.logging import request_id_context
 from app.domains.auth.dependencies import get_current_user
 from app.domains.auth.schemas import WithdrawRequest
 from app.domains.auth.service import AuthService
 from app.domains.user_profiles.schemas import (
+    ActivitySummaryResponse,
     OnboardingOptionsResponse,
     OnboardingRequest,
     ProfileResponse,
@@ -22,6 +24,7 @@ from app.domains.user_profiles.schemas import (
 )
 from app.domains.user_profiles.service import ProfileService
 from app.domains.users.models import User
+from app.integrations.object_storage import ObjectStorage, get_object_storage
 
 router = APIRouter(tags=["프로필"])
 
@@ -59,6 +62,28 @@ AUTHENTICATION_REQUIRED = {
         }
     },
 }
+
+
+@router.get(
+    "/users/me/activity-summary",
+    response_model=ActivitySummaryResponse,
+    summary="내 활동 요약 조회",
+    description="로그인 사용자의 작성 프로젝트, 상태별 지원, 북마크 건수를 반환합니다.",
+    operation_id="PROFILE_009_activity_summary",
+    responses={401: AUTHENTICATION_REQUIRED},
+)
+def activity_summary(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """로그인 사용자의 프로젝트 활동 건수를 조회한다."""
+    return {
+        "success": True,
+        "data": ProfileService.activity_summary(db, user),
+        "requestId": request_id_context.get(),
+    }
+
+
 INVALID_SELECTION = {
     "description": "선택한 기준정보가 존재하지 않거나 비활성 상태입니다.",
     "content": {
@@ -101,9 +126,10 @@ def save_onboarding(
     request: OnboardingRequest,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    storage: ObjectStorage = Depends(get_object_storage),
 ):
     """온보딩 입력값을 검증하고 로그인 사용자의 프로필에 저장한다."""
-    return {"data": ProfileService.save_onboarding(db, user, request)}
+    return {"data": ProfileService.save_onboarding(db, user, request, storage)}
 
 
 @router.get(
@@ -117,9 +143,10 @@ def save_onboarding(
 def my_profile(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    storage: ObjectStorage = Depends(get_object_storage),
 ):
     """로그인 사용자의 상세 프로필을 조회한다."""
-    return {"data": ProfileService.get_my_profile(db, user)}
+    return {"data": ProfileService.get_my_profile(db, user, storage)}
 
 
 @router.get(
@@ -154,9 +181,10 @@ def update_profile(
     request: ProfileUpdateRequest,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    storage: ObjectStorage = Depends(get_object_storage),
 ):
     """로그인 사용자의 기본 프로필을 부분 수정한다."""
-    return {"data": ProfileService.update_profile(db, user, request)}
+    return {"data": ProfileService.update_profile(db, user, request, storage)}
 
 
 @router.put(

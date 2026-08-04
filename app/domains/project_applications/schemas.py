@@ -51,6 +51,7 @@ class ApplicantSummary(ApplicationModel):
 class ApplicationResource(ApplicationModel):
     application_id: int
     project_id: int
+    project_title: str
     project_position_id: int
     application_message: str | None = None
     application_status: ApplicationStatus
