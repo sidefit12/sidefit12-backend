@@ -76,6 +76,30 @@ class ProfileService:
         }
 
     @staticmethod
+    def recommendation_text(db: Session, user_id: int) -> str:
+        """임베딩 도메인에 사용자 선호와 역량을 정규화한 텍스트로 제공한다."""
+        user = UserService.get_by_id(db, user_id)
+        if user is None:
+            raise UserNotFoundError()
+        profile = ProfileRepository.find_profile(db, user_id)
+        topics = [topic.topic_name for _, topic in ProfileRepository.list_topics(db, user_id)]
+        tech_stacks = [
+            tech.tech_stack_name for _, tech in ProfileRepository.list_tech_stacks(db, user_id)
+        ]
+        roles = [role.role_name for _, role in ProfileRepository.list_roles(db, user_id)]
+        parts = [
+            user.nickname,
+            profile.introduction if profile else None,
+            profile.career_level if profile else None,
+            profile.preferred_work_type if profile else None,
+            profile.preferred_region if profile else None,
+            *topics,
+            *tech_stacks,
+            *roles,
+        ]
+        return " ".join(str(value).strip() for value in parts if value).lower()
+
+    @staticmethod
     def onboarding_options(db: Session, user: User) -> OnboardingOptionsData:
         """활성 기준정보와 사용자의 현재 선택값을 반환한다."""
         topics = TopicService.list_active(db)
@@ -116,6 +140,7 @@ class ProfileService:
         ProfileRepository.replace_tech_stacks(db, user.user_id, request.tech_stacks)
         ProfileRepository.replace_roles(db, user.user_id, request.roles)
         db.commit()
+        ProfileService._refresh_recommendations(db, user.user_id)
         return ProfileService.get_my_profile(db, user)
 
     @staticmethod
@@ -183,6 +208,7 @@ class ProfileService:
                 str(request.external_link_url) if request.external_link_url is not None else None
             )
         db.commit()
+        ProfileService._refresh_recommendations(db, user.user_id)
         return ProfileService.get_my_profile(db, user)
 
     @staticmethod
@@ -191,6 +217,7 @@ class ProfileService:
         TopicService.validate_active_ids(db, set(topic_ids))
         ProfileRepository.replace_topics(db, user.user_id, topic_ids)
         db.commit()
+        ProfileService._refresh_recommendations(db, user.user_id)
         return TopicSelectionData(topics=ProfileService._selected_topics(db, user.user_id))
 
     @staticmethod
@@ -199,6 +226,7 @@ class ProfileService:
         TechStackService.validate_active_ids(db, {item.tech_stack_id for item in items})
         ProfileRepository.replace_tech_stacks(db, user.user_id, items)
         db.commit()
+        ProfileService._refresh_recommendations(db, user.user_id)
         return TechStackSelectionData(
             tech_stacks=ProfileService._selected_tech_stacks(db, user.user_id)
         )
@@ -209,7 +237,19 @@ class ProfileService:
         RoleService.validate_active_ids(db, {item.role_id for item in items})
         ProfileRepository.replace_roles(db, user.user_id, items)
         db.commit()
+        ProfileService._refresh_recommendations(db, user.user_id)
         return RoleSelectionData(roles=ProfileService._selected_roles(db, user.user_id))
+
+    @staticmethod
+    def _refresh_recommendations(db: Session, user_id: int) -> None:
+        """프로필 변경 이벤트에 해당하는 저장 추천 결과를 무효화한다."""
+        from app.domains.internal_processing.schemas import RecommendationUpdateEvent
+        from app.domains.internal_processing.service import InternalProcessingService
+
+        InternalProcessingService.refresh_recommendation_data(
+            db,
+            RecommendationUpdateEvent(target_type="USER", target_id=user_id),
+        )
 
     @staticmethod
     def _profile_data(db: Session, user: User, profile) -> ProfileData:

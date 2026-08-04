@@ -80,6 +80,11 @@ class ProjectMemberService:
         return ProjectMemberRepository.find_by_user(db, project_id, user_id) is not None
 
     @staticmethod
+    def active_position_count(db: Session, project_id: int, position_id: int) -> int:
+        """자동 모집 종료에서 포지션의 활성 일반 팀원 수를 제공한다."""
+        return ProjectMemberRepository.active_position_count(db, project_id, position_id)
+
+    @staticmethod
     def list_members(
         db: Session,
         user: User,

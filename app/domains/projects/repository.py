@@ -1,5 +1,7 @@
 """프로젝트와 모집 정보의 데이터 접근 연산."""
 
+from datetime import datetime
+
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
@@ -7,6 +9,22 @@ from app.domains.projects.models import Project, ProjectTechStack, ProjectTopic
 
 
 class ProjectRepository:
+    @staticmethod
+    def list_embedding_target_ids(db: Session, *, after_project_id: int, limit: int) -> list[int]:
+        """임베딩 백필 대상 프로젝트 식별자를 커서 방식으로 조회한다."""
+        return list(
+            db.scalars(
+                select(Project.project_id)
+                .where(
+                    Project.deleted_at.is_(None),
+                    Project.moderation_status == "VISIBLE",
+                    Project.project_id > after_project_id,
+                )
+                .order_by(Project.project_id)
+                .limit(limit)
+            ).all()
+        )
+
     @staticmethod
     def find(db: Session, project_id: int, *, include_deleted: bool = False) -> Project | None:
         query = select(Project).where(Project.project_id == project_id)
@@ -149,3 +167,38 @@ class ProjectRepository:
     def hide(project: Project) -> None:
         """관리자 조치로 프로젝트를 숨김 상태로 변경한다."""
         project.moderation_status = "HIDDEN"
+
+    @staticmethod
+    def recruiting_for_automatic_close(db: Session) -> list[Project]:
+        """자동 모집 종료 검사의 대상 프로젝트를 잠금 조회한다."""
+        return list(
+            db.scalars(
+                select(Project)
+                .where(
+                    Project.recruitment_status == "RECRUITING",
+                    Project.deleted_at.is_(None),
+                )
+                .with_for_update(skip_locked=True)
+            ).all()
+        )
+
+    @staticmethod
+    def update_recommendation_text(
+        project: Project, *, normalized_text: str, embedding_version: str
+    ) -> bool:
+        """추천용 정규화 텍스트와 처리 버전을 변경한다."""
+        if (
+            project.normalized_text == normalized_text
+            and project.embedding_version == embedding_version
+        ):
+            return False
+        project.normalized_text = normalized_text
+        project.embedding_version = embedding_version
+        return True
+
+    @staticmethod
+    def close_recruitment(project: Project, closed_at: datetime) -> None:
+        """프로젝트 모집을 종료 상태로 변경한다."""
+        project.recruitment_status = "CLOSED"
+        project.closed_at = closed_at
+        project.updated_at = closed_at

@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 import pytest
 from fastapi.testclient import TestClient
+from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import BigInteger, create_engine
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session, sessionmaker
@@ -22,6 +23,7 @@ from app.domains.notifications import models as notification_models  # noqa: F40
 from app.domains.project_applications import models as application_models  # noqa: F401
 from app.domains.project_bookmarks import models as bookmark_models  # noqa: F401
 from app.domains.project_collaboration_channels import models as channel_models  # noqa: F401
+from app.domains.project_embeddings import models as project_embedding_models  # noqa: F401
 from app.domains.project_member_events import models as member_event_models  # noqa: F401
 from app.domains.project_members import models as member_models  # noqa: F401
 from app.domains.project_positions import models as position_models  # noqa: F401
@@ -34,6 +36,7 @@ from app.domains.reports import models as report_models  # noqa: F401
 from app.domains.roles import models as role_models  # noqa: F401
 from app.domains.tech_stacks import models as tech_stack_models  # noqa: F401
 from app.domains.topics import models as topic_models  # noqa: F401
+from app.domains.user_embeddings import models as user_embedding_models  # noqa: F401
 from app.domains.user_profiles import models as profile_models  # noqa: F401
 from app.domains.users import models as user_models  # noqa: F401
 from app.integrations.maileroo import MailerooEmailService
@@ -44,6 +47,12 @@ from app.main import app
 def compile_big_integer_for_sqlite(_type: BigInteger, _compiler, **_kwargs) -> str:
     """SQLite 테스트에서 BIGINT PK가 자동 증가하도록 INTEGER로 변환한다."""
     return "INTEGER"
+
+
+@compiles(VECTOR, "sqlite")
+def compile_vector_for_sqlite(_type: VECTOR, _compiler, **_kwargs) -> str:
+    """SQLite 테스트에서 pgvector 컬럼을 텍스트 호환 타입으로 변환한다."""
+    return "TEXT"
 
 
 @dataclass

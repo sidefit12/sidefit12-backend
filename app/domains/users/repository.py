@@ -29,6 +29,22 @@ class UserRepository:
         )
 
     @staticmethod
+    def list_embedding_target_ids(db: Session, *, after_user_id: int, limit: int) -> list[int]:
+        """임베딩 백필 대상 활성 사용자 식별자를 커서 방식으로 조회한다."""
+        return list(
+            db.scalars(
+                select(User.user_id)
+                .where(
+                    User.user_status == "ACTIVE",
+                    User.deleted_at.is_(None),
+                    User.user_id > after_user_id,
+                )
+                .order_by(User.user_id)
+                .limit(limit)
+            ).all()
+        )
+
+    @staticmethod
     def add(db: Session, user: User) -> User:
         """새 사용자를 session에 추가하고 식별자를 할당받는다."""
         db.add(user)

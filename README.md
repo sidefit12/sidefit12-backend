@@ -46,10 +46,13 @@
 - **✅ 협업·운영 관리**
   > 프로젝트 협업 채널과 완료 프로젝트 참여자 리뷰 관리<br>
   > 사용자·프로젝트 신고와 관리자 조회·숨김·정지 처리
+- **✅ 내부 자동 처리**
+  > 프로필·프로젝트 변경 시 추천 데이터 갱신과 저장 결과 무효화<br>
+  > 모집 기한 경과·전 포지션 충원 프로젝트 자동 마감 및 멱등 알림 생성
 - **🔜 확장 기능**
   > 프로젝트 채팅·게시판과 일정 관리  
   > FCM 기반 푸시 알림과 WebSocket 기반 실시간 통신  
-  > OpenAI API를 활용한 모집 글 개선 및 추천 이유 보조 생성
+  > Gemini API를 활용한 사용자·프로젝트 임베딩과 의미 기반 추천 점수 생성
 
 ---
 
@@ -76,8 +79,8 @@
 ### Authentication & Recommendation
 <p>
   <img src="https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white">
-  <img src="https://img.shields.io/badge/Sentence_Transformers-FFD21E?style=for-the-badge">
-  <img src="https://img.shields.io/badge/OpenAI_API-412991?style=for-the-badge&logo=openai&logoColor=white">
+  <img src="https://img.shields.io/badge/pgvector-4169E1?style=for-the-badge&logo=postgresql&logoColor=white">
+  <img src="https://img.shields.io/badge/Gemini_API-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white">
 </p>
 
 ### Test & Infrastructure
@@ -91,7 +94,7 @@
 </div>
 
 > Docker Compose는 로컬 PostgreSQL 테스트 환경에서만 선택적으로 사용합니다.<br>
-> 현재 추천은 역할 40%, 토픽 30%, 기술 스택 30%의 규칙 기반 점수를 사용합니다. `pgvector`, Redis, Sentence Transformers, OpenAI API 등은 의미 기반 추천을 확장할 때 도입합니다.
+> 추천은 역할 40%, 토픽 30%, 기술 스택 30%로 규칙 점수를 계산한 뒤 Gemini 의미 유사도와 결합합니다. 임베딩은 Supabase PostgreSQL의 `pgvector`에 저장하며, 벡터가 없거나 Gemini를 사용할 수 없으면 규칙 점수로 안전하게 대체합니다.
 
 ---
 
@@ -262,6 +265,12 @@ flowchart TD
 ```
 
 Render에는 `.env` 파일을 업로드하지 않고 필요한 값을 Environment Variables로 등록합니다.
+
+모집 자동 종료 작업은 Render Cron Job에서 다음 명령으로 실행할 수 있습니다.
+
+```bash
+python -m app.jobs.recruitment_close
+```
 애플리케이션 실행 명령은 다음과 같이 구성할 수 있습니다.
 
 ```bash
@@ -345,7 +354,7 @@ docker compose ps
 > `The system cannot find the file specified` 오류가 발생하면 Docker Desktop이 실행되지 않은 상태입니다.  
 > Docker Desktop을 실행한 뒤 엔진 구동이 완료되면 명령어를 다시 실행합니다.
 
-### 5. pgvector 확장 활성화 (선택 사항)
+### 5. pgvector 확장과 임베딩 테이블 생성
 
 PostgreSQL 컨테이너가 처음 생성된 경우 `sidefit` 데이터베이스에서  
 `vector` 확장을 한 번 활성화합니다.
@@ -381,6 +390,11 @@ STORAGE_SECRET_KEY=Backblaze_applicationKey
 STORAGE_BUCKET=sidefit-dev-files
 STORAGE_REGION=us-west-004
 STORAGE_PUBLIC_BASE_URL=
+
+GEMINI_API_KEY=Google_AI_Studio에서_재발급한_키
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+GEMINI_EMBEDDING_DIMENSION=768
+GEMINI_EMBEDDING_VERSION=gemini-embedding-001-768-v1
 ```
 
 로컬 Docker PostgreSQL을 사용할 때만 다음 연결 문자열로 변경합니다.
@@ -561,7 +575,7 @@ SideFit은 일관된 형상 관리와 작업 이력 관리를 위해 아래 규�
 - [Backblaze B2 S3 호환 API](https://www.backblaze.com/docs/cloud-storage-s3-compatible-api)
 - [Render 공식 문서](https://render.com/docs)
 - [pgvector](https://github.com/pgvector/pgvector)
-- [Sentence Transformers 공식 문서](https://www.sbert.net/)
+- [Gemini 임베딩 공식 문서](https://ai.google.dev/gemini-api/docs/embeddings)
 - [OWASP API Security Top 10](https://owasp.org/www-project-api-security/)
 - [GitHub Actions 공식 문서](https://docs.github.com/actions)
 
@@ -584,3 +598,25 @@ SideFit은 일관된 형상 관리와 작업 이력 관리를 위해 아래 규�
     </td>
   </tr>
 </table>
+
+## Vector DB 설정
+
+추천 기능은 Supabase PostgreSQL의 `pgvector`와 Gemini 텍스트 임베딩을 사용합니다.
+사용자와 프로젝트 임베딩은 각각 독립 테이블인 `user_embeddings`,
+`project_embeddings`에 768차원 벡터로 저장합니다.
+
+1. Supabase SQL Editor에서 [`sql/pgvector_setup.sql`](./sql/pgvector_setup.sql)을 실행합니다.
+2. Google AI Studio에서 노출되지 않은 새 API 키를 발급합니다.
+3. 로컬 `.env`와 Render Environment Variables에 `GEMINI_API_KEY`를 등록합니다.
+4. 기존 사용자·프로젝트는 추천 갱신 작업을 실행해 임베딩을 생성합니다.
+
+기존 사용자·프로젝트 전체의 임베딩을 일괄 생성하려면 다음 명령을 한 번 실행합니다.
+
+```bash
+python -m app.jobs.embedding_backfill --batch-size 50
+```
+
+같은 원문과 임베딩 버전은 다시 Gemini API를 호출하지 않고 건너뜁니다. 일부 항목이 실패해도
+나머지 항목은 계속 처리하며, 종료 시 처리·건너뜀·실패 건수를 JSON으로 출력합니다.
+
+실제 API 키는 Git, README, 이슈, 채팅 또는 화면 캡처에 포함하지 않습니다.

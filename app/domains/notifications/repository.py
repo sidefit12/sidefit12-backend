@@ -90,3 +90,24 @@ class NotificationRepository:
         )
         db.add(notification)
         return notification
+
+    @staticmethod
+    def find_equivalent(
+        db: Session,
+        *,
+        user_id: int,
+        notification_type: str,
+        reference_type: str,
+        reference_id: int,
+        content: str,
+    ) -> Notification | None:
+        """동일 도메인 이벤트가 이미 생성한 알림을 조회한다."""
+        return db.scalar(
+            select(Notification).where(
+                Notification.user_id == user_id,
+                Notification.notification_type == notification_type,
+                Notification.reference_type == reference_type,
+                Notification.reference_id == reference_id,
+                Notification.content == content,
+            )
+        )
