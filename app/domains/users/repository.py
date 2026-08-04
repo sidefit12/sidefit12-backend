@@ -64,3 +64,15 @@ class UserRepository:
         """사용자의 닉네임을 session에 반영한다."""
         user.nickname = nickname
         db.add(user)
+
+    @staticmethod
+    def withdraw(user: User, *, withdrawn_at: datetime, password_hash: str) -> None:
+        """사용자를 탈퇴 상태로 변경하고 식별 정보를 익명화한다."""
+        user.email = f"withdrawn-{user.user_id}@deleted.sidefit.dev"
+        user.nickname = f"탈퇴회원{user.user_id}"
+        user.password_hash = password_hash
+        user.user_status = "WITHDRAWN"
+        user.email_verified_at = None
+        user.last_login_at = None
+        user.deleted_at = withdrawn_at
+        user.updated_at = withdrawn_at

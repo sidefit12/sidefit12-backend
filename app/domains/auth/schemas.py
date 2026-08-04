@@ -129,6 +129,19 @@ class LogoutRequest(CamelModel):
     )
 
 
+class WithdrawRequest(CamelModel):
+    """회원 탈퇴 본인 확인 요청."""
+
+    confirmation: str = Field(pattern="^WITHDRAW$", description="탈퇴 확인 문자열")
+    password: str = Field(min_length=8, max_length=64, description="현재 비밀번호")
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        json_schema_extra={"example": {"confirmation": "WITHDRAW", "password": "P@ssw0rd!"}},
+    )
+
+
 class EmailVerificationRequest(CamelModel):
     """이메일 인증 코드 발송 요청 데이터."""
 

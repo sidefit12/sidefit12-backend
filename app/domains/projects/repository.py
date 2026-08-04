@@ -15,6 +15,48 @@ class ProjectRepository:
         return db.scalar(query)
 
     @staticmethod
+    def has_active_owned_project(db: Session, user_id: int) -> bool:
+        """사용자가 책임지고 있는 종료 전 프로젝트가 있는지 확인한다."""
+        return (
+            db.scalar(
+                select(Project.project_id).where(
+                    Project.owner_user_id == user_id,
+                    Project.deleted_at.is_(None),
+                    Project.project_status.not_in(("COMPLETED", "CANCELED")),
+                )
+            )
+            is not None
+        )
+
+    @staticmethod
+    def count_by_owner(db: Session, user_id: int) -> int:
+        """사용자가 작성한 삭제되지 않은 프로젝트 수를 반환한다."""
+        return (
+            db.scalar(
+                select(func.count())
+                .select_from(Project)
+                .where(Project.owner_user_id == user_id, Project.deleted_at.is_(None))
+            )
+            or 0
+        )
+
+    @staticmethod
+    def recruiting_candidates(db: Session) -> list[Project]:
+        """추천 가능한 공개 모집 프로젝트를 최신순으로 반환한다."""
+        return list(
+            db.scalars(
+                select(Project)
+                .where(
+                    Project.deleted_at.is_(None),
+                    Project.moderation_status == "VISIBLE",
+                    Project.visibility == "PUBLIC",
+                    Project.recruitment_status == "RECRUITING",
+                )
+                .order_by(Project.created_at.desc(), Project.project_id.desc())
+            ).all()
+        )
+
+    @staticmethod
     def search(
         db: Session,
         *,

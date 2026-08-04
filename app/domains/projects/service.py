@@ -56,6 +56,43 @@ class ProjectService:
         return project
 
     @staticmethod
+    def has_active_owned_project(db: Session, user_id: int) -> bool:
+        """회원 탈퇴 전 종료되지 않은 소유 프로젝트 존재 여부를 제공한다."""
+        return ProjectRepository.has_active_owned_project(db, user_id)
+
+    @staticmethod
+    def count_owned(db: Session, user_id: int) -> int:
+        """홈 활동 요약에 사용자의 작성 프로젝트 수를 제공한다."""
+        return ProjectRepository.count_by_owner(db, user_id)
+
+    @staticmethod
+    def recommendation_candidates(db: Session, user: User | None) -> list[Project]:
+        """본인 작성글과 이미 지원한 글을 제외한 추천 후보를 반환한다."""
+        return [
+            project
+            for project in ProjectRepository.recruiting_candidates(db)
+            if user is None
+            or (
+                project.owner_user_id != user.user_id
+                and ProjectApplicationService.find_by_user(db, project.project_id, user.user_id)
+                is None
+            )
+        ]
+
+    @staticmethod
+    def match_data(db: Session, project_id: int) -> dict[str, set[int]]:
+        """추천 점수 계산에 필요한 프로젝트 기준정보 식별자를 반환한다."""
+        return {
+            "topic_ids": {item.topic_id for item in ProjectRepository.topics(db, project_id)},
+            "tech_stack_ids": {
+                item.tech_stack_id for item in ProjectRepository.tech_stacks(db, project_id)
+            },
+            "role_ids": {
+                item.role_id for item in ProjectPositionService.list_by_project(db, project_id)
+            },
+        }
+
+    @staticmethod
     def find_visible(db: Session, project_id: int, viewer: User | None) -> Project | None:
         """조회자에게 공개 가능한 삭제되지 않은 프로젝트를 반환한다."""
         project = ProjectRepository.find(db, project_id)

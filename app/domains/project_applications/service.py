@@ -50,6 +50,11 @@ class ProjectApplicationService:
         return ProjectApplicationRepository.accepted_counts(db, project_id)
 
     @staticmethod
+    def status_counts_by_user(db: Session, user_id: int) -> dict[str, int]:
+        """홈 활동 요약에 사용자 지원 상태별 개수를 제공한다."""
+        return ProjectApplicationRepository.status_counts(db, user_id=user_id)
+
+    @staticmethod
     def create(
         db: Session,
         user: User,
