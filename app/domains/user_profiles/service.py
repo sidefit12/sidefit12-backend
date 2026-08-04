@@ -47,6 +47,11 @@ class ProfileService:
         }
 
     @staticmethod
+    def detach_file_references(db: Session, file_id: int) -> None:
+        """파일 도메인의 삭제 요청에 따라 프로필 파일 참조를 해제한다."""
+        ProfileRepository.detach_file_references(db, file_id)
+
+    @staticmethod
     def onboarding_options(db: Session, user: User) -> OnboardingOptionsData:
         """활성 기준정보와 사용자의 현재 선택값을 반환한다."""
         topics = TopicService.list_active(db)
@@ -134,8 +139,20 @@ class ProfileService:
         ProfileService._apply_profile_fields(profile, request)
 
         if "profile_image_file_id" in request.model_fields_set:
+            if request.profile_image_file_id is not None:
+                from app.domains.files.service import FileService
+
+                FileService.validate_profile_reference(
+                    db, user.user_id, request.profile_image_file_id, "PROFILE_IMAGE"
+                )
             profile.profile_image_file_id = request.profile_image_file_id
         if "public_material_file_id" in request.model_fields_set:
+            if request.public_material_file_id is not None:
+                from app.domains.files.service import FileService
+
+                FileService.validate_profile_reference(
+                    db, user.user_id, request.public_material_file_id, "PUBLIC_MATERIAL"
+                )
             profile.public_material_file_id = request.public_material_file_id
         if "external_link_url" in request.model_fields_set:
             profile.external_link_url = (
