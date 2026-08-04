@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Identity,
+    Index,
     String,
     text,
 )
@@ -32,6 +33,9 @@ class File(Base):
         CheckConstraint(
             "download_allowed = FALSE OR visibility = 'PUBLIC'",
             name="ck_files_download_policy",
+        ),
+        Index(
+            "idx_files_uploader_status", "uploader_user_id", "file_status", text("created_at DESC")
         ),
     )
 

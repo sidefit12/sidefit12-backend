@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     maileroo_api_url: str = "https://smtp.maileroo.com/api/v2/emails"
     frontend_password_reset_url: str = "http://localhost:3000/password-reset"
     log_level: str = "INFO"
+    storage_endpoint_url: str | None = None
+    storage_access_key: str | None = None
+    storage_secret_key: str | None = None
+    storage_bucket: str | None = None
+    storage_region: str = "ap-northeast-2"
+    storage_public_base_url: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

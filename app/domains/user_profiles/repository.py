@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
 from app.domains.roles.models import Role
@@ -33,6 +33,23 @@ class ProfileRepository:
             db.add(profile)
             db.flush()
         return profile
+
+    @staticmethod
+    def detach_file_references(db: Session, file_id: int) -> None:
+        """지정한 파일을 참조하는 프로필 컬럼을 NULL로 변경한다."""
+        profiles = db.scalars(
+            select(UserProfile).where(
+                or_(
+                    UserProfile.profile_image_file_id == file_id,
+                    UserProfile.public_material_file_id == file_id,
+                )
+            )
+        ).all()
+        for profile in profiles:
+            if profile.profile_image_file_id == file_id:
+                profile.profile_image_file_id = None
+            if profile.public_material_file_id == file_id:
+                profile.public_material_file_id = None
 
     @staticmethod
     def list_topics(db: Session, user_id: int) -> Sequence[tuple[UserTopic, Topic]]:
