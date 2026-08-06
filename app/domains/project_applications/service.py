@@ -34,6 +34,7 @@ from app.domains.project_applications.schemas import (
 from app.domains.project_members.service import ProjectMemberService
 from app.domains.project_positions.service import ProjectPositionService
 from app.domains.projects.repository import ProjectRepository
+from app.domains.user_profiles.repository import ProfileRepository
 from app.domains.user_profiles.service import ProfileService
 from app.domains.users.models import User
 from app.domains.users.service import UserService
@@ -285,6 +286,13 @@ class ProjectApplicationService:
         db: Session, application, *, project_title: str | None = None
     ) -> ApplicationResource:
         applicant = UserService.get_by_id(db, application.applicant_user_id)
+        position = ProjectPositionService.find(db, application.project_position_id)
+        applicant_tech_stacks = [
+            tech_stack.tech_stack_name
+            for _, tech_stack in ProfileRepository.list_tech_stacks(
+                db, application.applicant_user_id
+            )
+        ]
         if project_title is None:
             project = ProjectRepository.find(db, application.project_id, include_deleted=True)
             project_title = project.title if project is not None else ""
@@ -293,12 +301,18 @@ class ProjectApplicationService:
             project_id=application.project_id,
             project_title=project_title,
             project_position_id=application.project_position_id,
+            position_title=position.position_title if position is not None else "",
+            applicant_tech_stacks=applicant_tech_stacks,
             application_message=application.application_message,
             application_status=application.application_status,
             applied_at=application.applied_at,
             reviewed_at=application.reviewed_at,
             rejection_reason=application.rejection_reason,
-            applicant=ApplicantSummary(user_id=applicant.user_id, nickname=applicant.nickname),
+            applicant=ApplicantSummary(
+                user_id=applicant.user_id,
+                nickname=applicant.nickname,
+                tech_stacks=applicant_tech_stacks,
+            ),
         )
 
     @staticmethod

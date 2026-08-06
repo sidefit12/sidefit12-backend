@@ -46,6 +46,7 @@ class ApplicationRejectRequest(ApplicationModel):
 class ApplicantSummary(ApplicationModel):
     user_id: int = Field(description="지원자 식별자")
     nickname: str = Field(description="지원자 닉네임")
+    tech_stacks: list[str] = Field(default_factory=list, description="지원자 보유 기술 스택명")
 
 
 class ApplicationResource(ApplicationModel):
@@ -53,6 +54,8 @@ class ApplicationResource(ApplicationModel):
     project_id: int
     project_title: str
     project_position_id: int
+    position_title: str
+    applicant_tech_stacks: list[str] = Field(default_factory=list)
     application_message: str | None = None
     application_status: ApplicationStatus
     applied_at: datetime

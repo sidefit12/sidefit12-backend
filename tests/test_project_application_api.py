@@ -12,7 +12,8 @@ from app.domains.project_members.models import ProjectMember
 from app.domains.project_positions.models import ProjectPosition
 from app.domains.projects.models import Project
 from app.domains.roles.models import Role
-from app.domains.user_profiles.models import UserProfile
+from app.domains.tech_stacks.models import TechStack
+from app.domains.user_profiles.models import UserProfile, UserTechStack
 from app.domains.users.models import User
 
 
@@ -39,6 +40,22 @@ def _seed(db: Session, *, required_count: int = 1):
     db.add_all([owner, applicant])
     db.flush()
     db.add(UserProfile(user_id=applicant.user_id, introduction="백엔드 개발자입니다."))
+    tech_stack = TechStack(
+        tech_stack_code="SPRING_BOOT",
+        tech_stack_name="Spring Boot",
+        category="BACKEND",
+    )
+    db.add(tech_stack)
+    db.flush()
+    db.add(
+        UserTechStack(
+            user_id=applicant.user_id,
+            tech_stack_id=tech_stack.tech_stack_id,
+            proficiency_level="INTERMEDIATE",
+            experience_months=12,
+            is_learning=False,
+        )
+    )
     role = Role(role_code="BACKEND", role_name="백엔드 개발자")
     db.add(role)
     db.flush()
@@ -114,6 +131,9 @@ def test_application_create_list_detail_and_accept(client: TestClient, db_sessio
     assert mine.status_code == 200
     assert mine.json()["data"]["statusCounts"] == {"PENDING": 1}
     assert mine.json()["data"]["items"][0]["projectTitle"] == project.title
+    assert mine.json()["data"]["items"][0]["positionTitle"] == position.position_title
+    assert mine.json()["data"]["items"][0]["applicantTechStacks"] == ["Spring Boot"]
+    assert mine.json()["data"]["items"][0]["applicant"]["techStacks"] == ["Spring Boot"]
 
     applicants = client.get(
         f"/api/v1/projects/{project.project_id}/applications", headers=_header(owner)

@@ -5,6 +5,8 @@ from app.core.openapi import apply_examples
 CREATE_REQUEST_EXAMPLE = {
     "applicationMessage": "백엔드 API 개발 경험으로 프로젝트에 기여하겠습니다.",
     "projectPositionId": 21,
+    "positionTitle": "백엔드 개발자",
+    "applicantTechStacks": ["Java", "Spring Boot", "PostgreSQL"],
 }
 CANCEL_REQUEST_EXAMPLE = {"reason": "일정이 맞지 않아 지원을 취소합니다."}
 ACCEPT_REQUEST_EXAMPLE = {"note": "합류를 환영합니다."}
@@ -22,7 +24,11 @@ APPLICATION_EXAMPLE = {
     "appliedAt": "2026-08-02T05:00:00Z",
     "reviewedAt": None,
     "rejectionReason": None,
-    "applicant": {"userId": 2, "nickname": "applicant"},
+    "applicant": {
+        "userId": 2,
+        "nickname": "applicant",
+        "techStacks": ["Java", "Spring Boot", "PostgreSQL"],
+    },
 }
 APPLICATION_RESPONSE_EXAMPLE = {
     "success": True,
