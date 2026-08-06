@@ -57,6 +57,8 @@ DETAIL_RESPONSE_EXAMPLE = {
             "introduction": "백엔드 개발자입니다.",
             "profileImageFileId": None,
             "publicMaterialFileId": None,
+            "profileImage": None,
+            "publicMaterial": None,
             "externalLinkUrl": None,
             "topics": [],
             "techStacks": [],

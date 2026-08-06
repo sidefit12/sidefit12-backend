@@ -169,7 +169,9 @@ class ProfileService:
         return ProfileService._profile_data(db, user, profile, storage)
 
     @staticmethod
-    def get_public_profile(db: Session, user_id: int) -> PublicProfileData:
+    def get_public_profile(
+        db: Session, user_id: int, storage: ObjectStorage | None = None
+    ) -> PublicProfileData:
         """활성 사용자의 공개 가능한 프로필 정보만 반환한다."""
         user = UserService.get_by_id(db, user_id)
         if user is None:
@@ -179,12 +181,24 @@ class ProfileService:
         profile = ProfileRepository.find_profile(db, user_id)
         if profile is None:
             raise ProfileNotFoundError(user_id)
+        profile_image = (
+            ProfileService._profile_file(db, profile.profile_image_file_id, storage)
+            if storage
+            else None
+        )
+        public_material = (
+            ProfileService._profile_file(db, profile.public_material_file_id, storage)
+            if storage
+            else None
+        )
         return PublicProfileData(
             user_id=user.user_id,
             nickname=user.nickname,
             introduction=profile.introduction,
             profile_image_file_id=profile.profile_image_file_id,
             public_material_file_id=profile.public_material_file_id,
+            profile_image=profile_image,
+            public_material=public_material,
             external_link_url=profile.external_link_url,
             topics=ProfileService._selected_topics(db, user.user_id),
             tech_stacks=ProfileService._selected_tech_stacks(db, user.user_id),

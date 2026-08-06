@@ -161,9 +161,10 @@ def public_profile(
     user_id: int = Path(..., gt=0, description="조회할 사용자 식별자"),
     _user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    storage: ObjectStorage = Depends(get_object_storage),
 ):
     """지정한 활성 사용자의 공개 프로필을 조회한다."""
-    return {"data": ProfileService.get_public_profile(db, user_id)}
+    return {"data": ProfileService.get_public_profile(db, user_id, storage)}
 
 
 @router.patch(

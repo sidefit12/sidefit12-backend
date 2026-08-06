@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.security import create_token
+from app.domains.files.models import File
 from app.domains.notifications.models import Notification
 from app.domains.project_member_events.models import ProjectMemberEvent
 from app.domains.project_members.models import ProjectMember
@@ -15,6 +16,13 @@ from app.domains.roles.models import Role
 from app.domains.tech_stacks.models import TechStack
 from app.domains.user_profiles.models import UserProfile, UserTechStack
 from app.domains.users.models import User
+from app.integrations.object_storage import get_object_storage
+from app.main import app
+
+
+class TestStorage:
+    def url(self, key: str, *, public: bool) -> str:
+        return f"https://storage.sidefit.test/{'public' if public else 'signed'}/{key}"
 
 
 def _header(user: User) -> dict[str, str]:
@@ -39,7 +47,27 @@ def _seed(db: Session, *, required_count: int = 1):
     )
     db.add_all([owner, applicant])
     db.flush()
-    db.add(UserProfile(user_id=applicant.user_id, introduction="백엔드 개발자입니다."))
+    portfolio = File(
+        uploader_user_id=applicant.user_id,
+        storage_key=f"users/{applicant.user_id}/public_material/portfolio.pdf",
+        original_name="지원자_포트폴리오.pdf",
+        mime_type="application/pdf",
+        file_size=1024,
+        file_category="PUBLIC_MATERIAL",
+        visibility="PUBLIC",
+        preview_allowed=True,
+        download_allowed=True,
+        file_status="ACTIVE",
+    )
+    db.add(portfolio)
+    db.flush()
+    db.add(
+        UserProfile(
+            user_id=applicant.user_id,
+            introduction="백엔드 개발자입니다.",
+            public_material_file_id=portfolio.file_id,
+        )
+    )
     tech_stack = TechStack(
         tech_stack_code="SPRING_BOOT",
         tech_stack_name="Spring Boot",
@@ -111,6 +139,7 @@ def _apply_idempotently(
 
 def test_application_create_list_detail_and_accept(client: TestClient, db_session: Session) -> None:
     """지원 생성부터 소유자 승인과 팀원 생성까지 하나의 흐름으로 검증한다."""
+    app.dependency_overrides[get_object_storage] = lambda: TestStorage()
     owner, applicant, project, position = _seed(db_session)
 
     created = _apply_idempotently(client, applicant, project, position)
@@ -144,6 +173,15 @@ def test_application_create_list_detail_and_accept(client: TestClient, db_sessio
     detail = client.get(f"/api/v1/applications/{application_id}", headers=_header(owner))
     assert detail.status_code == 200
     assert detail.json()["data"]["applicantProfile"]["introduction"] == "백엔드 개발자입니다."
+    assert detail.json()["data"]["applicantProfile"]["profileImage"] is None
+    assert detail.json()["data"]["applicantProfile"]["publicMaterial"] == {
+        "fileId": detail.json()["data"]["applicantProfile"]["publicMaterialFileId"],
+        "originalName": "지원자_포트폴리오.pdf",
+        "url": (
+            f"https://storage.sidefit.test/public/users/{applicant.user_id}"
+            "/public_material/portfolio.pdf"
+        ),
+    }
     assert detail.json()["data"]["submittedSnapshot"] is None
 
     accepted = client.patch(

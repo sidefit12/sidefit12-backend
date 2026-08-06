@@ -268,6 +268,8 @@ class PublicProfileData(ProfileModel):
     introduction: str | None = None
     profile_image_file_id: int | None = None
     public_material_file_id: int | None = None
+    profile_image: ProfileFileData | None = None
+    public_material: ProfileFileData | None = None
     external_link_url: str | None = None
     topics: list[SelectedTopic]
     tech_stacks: list[SelectedTechStack]

@@ -38,6 +38,7 @@ from app.domains.user_profiles.repository import ProfileRepository
 from app.domains.user_profiles.service import ProfileService
 from app.domains.users.models import User
 from app.domains.users.service import UserService
+from app.integrations.object_storage import ObjectStorage
 
 
 class ProjectApplicationService:
@@ -171,7 +172,12 @@ class ProjectApplicationService:
         return ProjectApplicationService._page_result(db, items, counts, page, size, total)
 
     @staticmethod
-    def detail(db: Session, user: User, application_id: int) -> ApplicationDetailData:
+    def detail(
+        db: Session,
+        user: User,
+        application_id: int,
+        storage: ObjectStorage,
+    ) -> ApplicationDetailData:
         """지원자 또는 프로젝트 소유자에게 지원 상세와 공개 프로필을 반환한다."""
         from app.domains.projects.service import ProjectService
 
@@ -182,7 +188,9 @@ class ProjectApplicationService:
         if user.user_id not in {application.applicant_user_id, project.owner_user_id}:
             raise ApplicationAccessDeniedError()
         return ApplicationDetailData(
-            applicant_profile=ProfileService.get_public_profile(db, application.applicant_user_id),
+            applicant_profile=ProfileService.get_public_profile(
+                db, application.applicant_user_id, storage
+            ),
             application=ProjectApplicationService._resource(db, application),
             submitted_snapshot=None,
         )

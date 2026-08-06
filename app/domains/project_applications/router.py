@@ -32,6 +32,7 @@ from app.domains.project_applications.schemas import (
 )
 from app.domains.project_applications.service import ProjectApplicationService
 from app.domains.users.models import User
+from app.integrations.object_storage import ObjectStorage, get_object_storage
 
 router = APIRouter(tags=["프로젝트 지원"])
 ApplicationStatus = Literal["PENDING", "ACCEPTED", "REJECTED", "CANCELED"]
@@ -177,8 +178,9 @@ def get_application(
     application_id: int = Path(alias="applicationId", gt=0, description="지원 식별자"),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    storage: ObjectStorage = Depends(get_object_storage),
 ):
-    data = ProjectApplicationService.detail(db, user, application_id)
+    data = ProjectApplicationService.detail(db, user, application_id, storage)
     return {"success": True, "data": data, "requestId": _request_id()}
 
 
