@@ -13,7 +13,9 @@ from app.domains.project_members.models import ProjectMember
 from app.domains.project_positions.models import ProjectPosition
 from app.domains.projects.models import Project
 from app.domains.roles.models import Role
-from app.domains.user_profiles.models import UserProfile
+from app.domains.tech_stacks.models import TechStack
+from app.domains.topics.models import Topic
+from app.domains.user_profiles.models import UserProfile, UserRole, UserTechStack, UserTopic
 from app.domains.users.models import User
 
 
@@ -49,12 +51,41 @@ def _seed(db: Session):
     db.add_all(
         [
             UserProfile(user_id=owner.user_id, onboarding_completed=True),
-            UserProfile(user_id=member_user.user_id, onboarding_completed=True),
+            UserProfile(
+                user_id=member_user.user_id,
+                introduction="API와 데이터 모델링을 담당합니다.",
+                career_level="INTERMEDIATE",
+                preferred_work_type="ONLINE",
+                available_hours_per_week=12,
+                onboarding_completed=True,
+            ),
         ]
     )
     role = Role(role_code="MEMBER_BACKEND", role_name="팀원 백엔드")
-    db.add(role)
+    topic = Topic(topic_code="MEMBER_AI", topic_name="AI")
+    tech_stack = TechStack(
+        tech_stack_code="MEMBER_FASTAPI", tech_stack_name="FastAPI", category="Backend"
+    )
+    db.add_all([role, topic, tech_stack])
     db.flush()
+    db.add_all(
+        [
+            UserTopic(user_id=member_user.user_id, topic_id=topic.topic_id, interest_level=5),
+            UserTechStack(
+                user_id=member_user.user_id,
+                tech_stack_id=tech_stack.tech_stack_id,
+                proficiency_level="INTERMEDIATE",
+                experience_months=18,
+                is_learning=False,
+            ),
+            UserRole(
+                user_id=member_user.user_id,
+                role_id=role.role_id,
+                priority=1,
+                experience_level="INTERMEDIATE",
+            ),
+        ]
+    )
     project = Project(
         owner_user_id=owner.user_id,
         title="팀원 API 테스트 프로젝트",
@@ -156,6 +187,12 @@ def test_member_list_channel_permission_and_event_history(
         if item["user"]["userId"] == member_user.user_id
     )
     assert own["user"]["email"] == member_user.email
+    assert own["user"]["introduction"] == "API와 데이터 모델링을 담당합니다."
+    assert own["user"]["careerLevel"] == "INTERMEDIATE"
+    assert own["user"]["availableHoursPerWeek"] == 12
+    assert own["user"]["topics"][0]["topicName"] == "AI"
+    assert own["user"]["techStacks"][0]["techStackName"] == "FastAPI"
+    assert own["user"]["roles"][0]["roleName"] == "팀원 백엔드"
 
     forbidden_events = client.get(
         f"/api/v1/projects/{project.project_id}/member-events", headers=_header(outsider)

@@ -26,6 +26,7 @@ from app.domains.project_members.schemas import (
     PositionCapacity,
 )
 from app.domains.project_positions.service import ProjectPositionService
+from app.domains.user_profiles.repository import ProfileRepository
 from app.domains.user_profiles.service import ProfileService
 from app.domains.users.models import User
 from app.domains.users.service import UserService
@@ -96,7 +97,7 @@ class ProjectMemberService:
         """팀원 목록, 포지션 충원 현황과 권한에 따른 협업 채널을 반환한다."""
         from app.domains.projects.service import ProjectService
 
-        ProjectService.get_for_application(db, project_id)
+        project = ProjectService.get_for_application(db, project_id)
         requester = ProjectMemberRepository.find_by_user(db, project_id, user.user_id)
         is_active_member = requester is not None and requester.member_status == "ACTIVE"
         if include_channels and not is_active_member:
@@ -121,7 +122,17 @@ class ProjectMemberService:
                 )
             ]
         return MemberListData(
-            items=[ProjectMemberService._resource(db, member, user) for member in members],
+            items=[
+                ProjectMemberService._resource(
+                    db,
+                    member,
+                    user,
+                    expose_private=(
+                        user.user_id == project.owner_user_id or user.user_id == member.user_id
+                    ),
+                )
+                for member in members
+            ],
             position_summary={
                 str(position.project_position_id): PositionCapacity(
                     project_position_id=position.project_position_id,
@@ -269,7 +280,9 @@ class ProjectMemberService:
         )
 
     @staticmethod
-    def _resource(db: Session, member, viewer: User) -> MemberResource:
+    def _resource(
+        db: Session, member, viewer: User, *, expose_private: bool = False
+    ) -> MemberResource:
         user = UserService.get_by_id(db, member.user_id)
         return MemberResource(
             project_member_id=member.project_member_id,
@@ -279,12 +292,17 @@ class ProjectMemberService:
             member_status=member.member_status,
             joined_at=member.joined_at,
             left_at=member.left_at,
-            user=ProjectMemberService._user_summary(db, user, viewer),
+            user=ProjectMemberService._user_summary(
+                db, user, viewer, expose_private=expose_private
+            ),
         )
 
     @staticmethod
-    def _user_summary(db: Session, user: User, viewer: User) -> MemberUserSummary:
+    def _user_summary(
+        db: Session, user: User, viewer: User, *, expose_private: bool = False
+    ) -> MemberUserSummary:
         profile = ProfileService.get_user_summary(db, user.user_id)
+        stored_profile = ProfileRepository.find_profile(db, user.user_id)
         return MemberUserSummary(
             user_id=user.user_id,
             nickname=user.nickname,
@@ -293,6 +311,29 @@ class ProjectMemberService:
             onboarding_completed=bool(profile["onboarding_completed"]),
             profile_image_url=profile["profile_image_url"],
             email=user.email if viewer.user_id == user.user_id else None,
+            introduction=stored_profile.introduction if stored_profile else None,
+            external_link_url=stored_profile.external_link_url if stored_profile else None,
+            career_level=stored_profile.career_level if stored_profile and expose_private else None,
+            preferred_work_type=(
+                stored_profile.preferred_work_type if stored_profile and expose_private else None
+            ),
+            preferred_region=(
+                stored_profile.preferred_region if stored_profile and expose_private else None
+            ),
+            available_start_date=(
+                stored_profile.available_start_date if stored_profile and expose_private else None
+            ),
+            available_end_date=(
+                stored_profile.available_end_date if stored_profile and expose_private else None
+            ),
+            available_hours_per_week=(
+                stored_profile.available_hours_per_week
+                if stored_profile and expose_private
+                else None
+            ),
+            topics=ProfileService._selected_topics(db, user.user_id),
+            tech_stacks=ProfileService._selected_tech_stacks(db, user.user_id),
+            roles=ProfileService._selected_roles(db, user.user_id),
         )
 
     @staticmethod

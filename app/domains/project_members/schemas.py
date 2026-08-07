@@ -1,10 +1,11 @@
 """프로젝트 팀원 API 요청·응답 스키마."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.domains.auth.schemas import to_camel
+from app.domains.user_profiles.schemas import SelectedRole, SelectedTechStack, SelectedTopic
 
 
 class MemberModel(BaseModel):
@@ -43,6 +44,17 @@ class MemberUserSummary(MemberModel):
     onboarding_completed: bool
     profile_image_url: str | None = None
     email: str | None = None
+    introduction: str | None = None
+    external_link_url: str | None = None
+    career_level: str | None = None
+    preferred_work_type: str | None = None
+    preferred_region: str | None = None
+    available_start_date: date | None = None
+    available_end_date: date | None = None
+    available_hours_per_week: int | None = None
+    topics: list[SelectedTopic] = Field(default_factory=list)
+    tech_stacks: list[SelectedTechStack] = Field(default_factory=list)
+    roles: list[SelectedRole] = Field(default_factory=list)
 
 
 class MemberResource(MemberModel):
