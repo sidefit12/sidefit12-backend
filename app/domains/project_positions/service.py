@@ -1,8 +1,14 @@
 """프로젝트 모집 포지션 서비스."""
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.domains.project_members.models import ProjectMember
 from app.domains.project_positions.repository import ProjectPositionRepository
+from app.domains.projects.exceptions import (
+    CannotRemoveReferencedPositionError,
+    ReferenceNotFoundError,
+)
 
 
 class ProjectPositionService:
@@ -25,8 +31,30 @@ class ProjectPositionService:
 
     @staticmethod
     def replace(db: Session, project_id: int, items) -> None:
-        """프로젝트 모집 포지션을 전체 교체한다."""
-        ProjectPositionRepository.replace(db, project_id, items)
+        """기존 포지션은 수정하고 새 포지션만 추가하며 안전한 항목만 제거한다."""
+        existing = list(ProjectPositionRepository.list_by_project(db, project_id))
+        existing_ids = {position.project_position_id for position in existing}
+        requested_ids = [
+            item.project_position_id for item in items if item.project_position_id is not None
+        ]
+        invalid_ids = sorted(set(requested_ids) - existing_ids)
+        if invalid_ids:
+            raise ReferenceNotFoundError("position", invalid_ids)
+
+        removed_ids = existing_ids - set(requested_ids)
+        if removed_ids:
+            referenced_ids = set(
+                db.scalars(
+                    select(ProjectMember.project_position_id).where(
+                        ProjectMember.project_id == project_id,
+                        ProjectMember.project_position_id.in_(removed_ids),
+                    )
+                ).all()
+            )
+            if referenced_ids:
+                raise CannotRemoveReferencedPositionError(sorted(referenced_ids))
+
+        ProjectPositionRepository.sync(db, project_id, items, existing)
 
     @staticmethod
     def list_by_project(db: Session, project_id: int):

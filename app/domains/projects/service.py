@@ -232,10 +232,7 @@ class ProjectService:
         ProjectRepository.replace_tech_stacks(db, project.project_id, request.tech_stacks)
         ProjectPositionService.replace(db, project.project_id, request.positions)
         db.flush()
-        positions = ProjectPositionService.list_by_project(db, project.project_id)
-        ProjectMemberService.add_owner(
-            db, project.project_id, user.user_id, positions[0].project_position_id
-        )
+        ProjectMemberService.add_owner(db, project.project_id, user.user_id)
         if idempotency_key:
             IdempotencyRequestService.add(
                 db, user.user_id, idempotency_key, request_hash, project.project_id

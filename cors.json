@@ -1,0 +1,21 @@
+{
+  "CORSRules": [
+    {
+      "ID": "allow-sidefit-pdf-viewer",
+      "AllowedOrigins": [
+        "http://localhost:5173",
+        "https://sidefit12-frontend.vercel.app",
+        "https://sidefit12-frontend-git-develop-whitebin-bins-projects.vercel.app"
+      ],
+      "AllowedMethods": ["GET", "HEAD"],
+      "AllowedHeaders": ["*"],
+      "ExposeHeaders": [
+        "Accept-Ranges",
+        "Content-Length",
+        "Content-Range",
+        "ETag"
+      ],
+      "MaxAgeSeconds": 3600
+    }
+  ]
+}

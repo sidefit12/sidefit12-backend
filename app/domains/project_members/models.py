@@ -33,6 +33,11 @@ class ProjectMember(Base):
         ),
         CheckConstraint("member_type IN ('OWNER','MEMBER')", name="ck_project_members_type"),
         CheckConstraint(
+            "(member_type = 'OWNER' AND project_position_id IS NULL) OR "
+            "(member_type = 'MEMBER' AND project_position_id IS NOT NULL)",
+            name="ck_project_members_position_by_type",
+        ),
+        CheckConstraint(
             "member_status IN ('ACTIVE','LEFT','REMOVED')", name="ck_project_members_status"
         ),
         CheckConstraint(
@@ -47,7 +52,7 @@ class ProjectMember(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False
     )
-    project_position_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    project_position_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     project_application_id: Mapped[int | None] = mapped_column(
         ForeignKey("project_applications.project_application_id", ondelete="SET NULL"),
         nullable=True,

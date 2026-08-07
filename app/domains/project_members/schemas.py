@@ -48,7 +48,7 @@ class MemberUserSummary(MemberModel):
 class MemberResource(MemberModel):
     project_member_id: int
     project_id: int
-    project_position_id: int
+    project_position_id: int | None
     member_type: str
     member_status: str
     joined_at: datetime

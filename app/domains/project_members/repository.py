@@ -46,11 +46,11 @@ class ProjectMemberRepository:
         )
 
     @staticmethod
-    def add_owner(db: Session, project_id: int, user_id: int, position_id: int) -> ProjectMember:
+    def add_owner(db: Session, project_id: int, user_id: int) -> ProjectMember:
         member = ProjectMember(
             project_id=project_id,
             user_id=user_id,
-            project_position_id=position_id,
+            project_position_id=None,
             member_type="OWNER",
         )
         db.add(member)

@@ -28,6 +28,10 @@ class ReferenceNotFoundError(AppException):
             "topic": ("TOPIC_NOT_FOUND", "유효하지 않은 토픽입니다."),
             "techStack": ("TECH_STACK_NOT_FOUND", "유효하지 않은 기술 스택입니다."),
             "role": ("ROLE_NOT_FOUND", "유효하지 않은 역할입니다."),
+            "position": (
+                "PROJECT_POSITION_NOT_FOUND",
+                "프로젝트에 속하지 않은 모집 포지션입니다.",
+            ),
         }
         code, message = codes[item_type]
         super().__init__(
@@ -57,6 +61,16 @@ class CannotDeleteProjectWithMembersError(AppException):
             status_code=409,
             code="CANNOT_DELETE_PROJECT_WITH_MEMBERS",
             message="확정 팀원이 있어 삭제할 수 없습니다.",
+        )
+
+
+class CannotRemoveReferencedPositionError(AppException):
+    def __init__(self, position_ids: list[int]) -> None:
+        super().__init__(
+            status_code=409,
+            code="CANNOT_REMOVE_REFERENCED_POSITION",
+            message="팀원이 배정된 모집 포지션은 제거할 수 없습니다.",
+            details={"project_position_ids": position_ids},
         )
 
 

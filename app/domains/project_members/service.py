@@ -35,8 +35,8 @@ class ProjectMemberService:
     """MEMBER-001~005와 프로젝트 생성·승인에 필요한 팀원 규칙을 제공한다."""
 
     @staticmethod
-    def add_owner(db: Session, project_id: int, user_id: int, position_id: int) -> None:
-        member = ProjectMemberRepository.add_owner(db, project_id, user_id, position_id)
+    def add_owner(db: Session, project_id: int, user_id: int) -> None:
+        member = ProjectMemberRepository.add_owner(db, project_id, user_id)
         ProjectMemberEventService.add_joined(db, member.project_member_id, user_id)
 
     @staticmethod

@@ -121,6 +121,14 @@ class ProjectUpdateRequest(ProjectModel):
             _unique([x.tech_stack_id for x in self.tech_stacks], "techStacks")
         if self.positions is not None:
             _unique([x.role_id for x in self.positions], "positions")
+            _unique(
+                [
+                    x.project_position_id
+                    for x in self.positions
+                    if x.project_position_id is not None
+                ],
+                "projectPositionIds",
+            )
             if sum(x.required_count for x in self.positions) > 20:
                 raise ValueError("전체 모집 인원은 20명을 초과할 수 없습니다.")
         return self

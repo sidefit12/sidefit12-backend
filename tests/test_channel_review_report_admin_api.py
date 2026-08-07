@@ -87,7 +87,7 @@ def _seed(db: Session):
             ProjectMember(
                 project_id=project.project_id,
                 user_id=owner.user_id,
-                project_position_id=position.project_position_id,
+                project_position_id=None,
                 member_type="OWNER",
                 member_status="ACTIVE",
             ),

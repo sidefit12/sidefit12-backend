@@ -10,6 +10,7 @@ from app.domains.project_members.models import ProjectMember
 from app.domains.roles.models import Role
 from app.domains.tech_stacks.models import TechStack
 from app.domains.topics.models import Topic
+from app.domains.users.models import User
 from tests.conftest import SentEmailStore
 from tests.test_auth_api import dispatch_and_confirm, signup
 
@@ -72,9 +73,10 @@ def test_project_api_spec_flow(
     project_id = data["project"]["projectId"]
     assert data["project"]["recruitmentStatus"] == "DRAFT"
     assert "script" not in data["description"]
-    assert (
+    owner_member = (
         db_session.query(ProjectMember).filter_by(project_id=project_id, member_type="OWNER").one()
     )
+    assert owner_member.project_position_id is None
     assert db_session.query(ProjectMemberEvent).filter_by(event_type="JOINED").one()
 
     repeated = client.post("/api/v1/projects", headers=headers, json=payload)
@@ -130,6 +132,103 @@ def test_project_api_spec_flow(
     assert deleted.status_code == 204
     assert deleted.content == b""
     assert client.get(f"/api/v1/projects/{project_id}").status_code == 404
+
+
+def test_project_position_update_preserves_ids_and_blocks_referenced_removal(
+    client: TestClient, db_session: Session, sent_emails: SentEmailStore
+) -> None:
+    topic, tech, role = _options(db_session)
+    second_role = Role(role_code="FRONTEND", role_name="프론트엔드")
+    db_session.add(second_role)
+    db_session.commit()
+    headers = _headers(client, sent_emails)
+
+    created = client.post("/api/v1/projects", headers=headers, json=_payload(topic, tech, role))
+    assert created.status_code == 201
+    project_id = created.json()["data"]["project"]["projectId"]
+    owner_position_id = created.json()["data"]["project"]["positions"][0]["projectPositionId"]
+
+    updated = client.patch(
+        f"/api/v1/projects/{project_id}",
+        headers=headers,
+        json={
+            "positions": [
+                {
+                    "projectPositionId": owner_position_id,
+                    "roleId": role.role_id,
+                    "positionTitle": "백엔드 리드",
+                    "requiredCount": 3,
+                },
+                {
+                    "roleId": second_role.role_id,
+                    "positionTitle": "프론트엔드 개발자",
+                    "requiredCount": 1,
+                },
+            ]
+        },
+    )
+    assert updated.status_code == 200
+    positions = updated.json()["data"]["project"]["positions"]
+    assert positions[0]["projectPositionId"] == owner_position_id
+    assert positions[0]["positionTitle"] == "백엔드 리드"
+    new_position_id = positions[1]["projectPositionId"]
+
+    assigned_user = User(
+        email="assigned@example.com",
+        password_hash="not-used",
+        nickname="assigned-member",
+        user_status="ACTIVE",
+        system_role="USER",
+    )
+    db_session.add(assigned_user)
+    db_session.flush()
+    db_session.add(
+        ProjectMember(
+            project_id=project_id,
+            user_id=assigned_user.user_id,
+            project_position_id=owner_position_id,
+            member_type="MEMBER",
+            member_status="ACTIVE",
+        )
+    )
+    db_session.commit()
+
+    removed_unreferenced = client.patch(
+        f"/api/v1/projects/{project_id}",
+        headers=headers,
+        json={
+            "positions": [
+                {
+                    "projectPositionId": owner_position_id,
+                    "roleId": role.role_id,
+                    "positionTitle": "백엔드 리드",
+                    "requiredCount": 3,
+                }
+            ]
+        },
+    )
+    assert removed_unreferenced.status_code == 200
+    assert new_position_id not in {
+        item["projectPositionId"]
+        for item in removed_unreferenced.json()["data"]["project"]["positions"]
+    }
+
+    blocked = client.patch(
+        f"/api/v1/projects/{project_id}",
+        headers=headers,
+        json={
+            "positions": [
+                {
+                    "roleId": second_role.role_id,
+                    "positionTitle": "프론트엔드 개발자",
+                    "requiredCount": 1,
+                }
+            ]
+        },
+    )
+    assert blocked.status_code == 409
+    assert blocked.json()["code"] == "CANNOT_REMOVE_REFERENCED_POSITION"
+    assert blocked.json()["details"]["project_position_ids"] == [owner_position_id]
 
 
 def test_project_reference_and_swagger_contract(
