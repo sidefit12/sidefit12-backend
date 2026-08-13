@@ -155,6 +155,18 @@ class PasswordResetTokenExpiredError(AppException):
         )
 
 
+class SameAsCurrentPasswordError(AppException):
+    """새 비밀번호가 현재 비밀번호와 동일할 때 발생하는 예외."""
+
+    def __init__(self) -> None:
+        """현재 비밀번호 재사용 예외를 생성한다."""
+        super().__init__(
+            status_code=422,
+            code="SAME_AS_CURRENT_PASSWORD",
+            message="현재 비밀번호와 동일합니다.",
+        )
+
+
 class TooManyRequestsError(AppException):
     """짧은 시간에 허용된 횟수보다 많은 요청이 들어올 때 발생하는 예외."""
 

@@ -22,6 +22,7 @@ from app.domains.auth.exceptions import (
     NicknameAlreadyExistsError,
     PasswordResetTokenExpiredError,
     RefreshTokenReusedError,
+    SameAsCurrentPasswordError,
     TokenExpiredError,
     TooManyRequestsError,
     UserSuspendedError,
@@ -457,6 +458,9 @@ class AuthService:
         user = UserService.get_by_id(db, verification.user_id)
         if user is None or user.user_status != "ACTIVE":
             raise InvalidPasswordResetTokenError()
+
+        if verify_password(request.new_password, user.password_hash):
+            raise SameAsCurrentPasswordError()
 
         UserService.update_password_hash(db, user, hash_password(request.new_password))
         EmailVerificationService.mark_used(db, verification, now)

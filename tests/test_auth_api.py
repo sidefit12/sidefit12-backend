@@ -267,6 +267,40 @@ def test_password_reset_request_does_not_reveal_unknown_email(
     assert sent_emails.password_resets == []
 
 
+def test_password_reset_rejects_current_password_without_consuming_token(
+    client: TestClient,
+    sent_emails: SentEmailStore,
+) -> None:
+    """현재 비밀번호로 재설정할 수 없으며 실패한 토큰은 소비하지 않는다."""
+    signup(client, dispatch_and_confirm(client, sent_emails))
+    client.post("/api/v1/auth/password-reset/request", json={"email": EMAIL})
+    reset_token = sent_emails.latest_reset_token
+
+    same_password_response = client.post(
+        "/api/v1/auth/password-reset/confirm",
+        json={
+            "newPassword": PASSWORD,
+            "newPasswordConfirm": PASSWORD,
+            "resetToken": reset_token,
+        },
+    )
+
+    assert same_password_response.status_code == 422
+    assert same_password_response.json()["code"] == "SAME_AS_CURRENT_PASSWORD"
+    assert same_password_response.json()["message"] == "현재 비밀번호와 동일합니다."
+
+    new_password = "ChangedPassword1!"
+    retry_response = client.post(
+        "/api/v1/auth/password-reset/confirm",
+        json={
+            "newPassword": new_password,
+            "newPasswordConfirm": new_password,
+            "resetToken": reset_token,
+        },
+    )
+    assert retry_response.status_code == 204
+
+
 def test_refresh_rotation_reuse_detection_and_logout(
     client: TestClient,
     db_session: Session,

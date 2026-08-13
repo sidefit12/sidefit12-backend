@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     maileroo_from_email: str
     maileroo_from_name: str = "SideFit"
     maileroo_api_url: str = "https://smtp.maileroo.com/api/v2/emails"
-    frontend_password_reset_url: str = "http://localhost:3000/password-reset"
+    frontend_password_reset_url: str = "http://localhost:5173/password-reset/confirm"
     cors_origins: str = "http://localhost:5173"
     log_level: str = "INFO"
     storage_endpoint_url: str | None = None

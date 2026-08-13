@@ -386,7 +386,7 @@ DATABASE_URL=postgresql+psycopg://사용자:비밀번호@호스트:5432/postgres
 MAILEROO_API_KEY=메일_API_키
 MAILEROO_FROM_EMAIL=발신_이메일
 MAILEROO_FROM_NAME=SideFit
-FRONTEND_PASSWORD_RESET_URL=http://localhost:3000/password-reset
+FRONTEND_PASSWORD_RESET_URL=http://localhost:5173/password-reset/confirm
 LOG_LEVEL=INFO
 
 STORAGE_ENDPOINT_URL=https://s3.us-west-004.backblazeb2.com
